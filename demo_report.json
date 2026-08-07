@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "project_name": "LAT-CES Plenum Vent Analysis",
+    "engineer_name": "fahrudin Susnjar",
+    "plenum_id": "PLENUM-MAIN-01",
+    "timestamp_utc": "2026-08-07T18:25:43.962567+00:00",
+    "standard": "ISO GUM / LAT-CES Constitutional Science"
+  },
+  "device": {
+    "name": "Pitot-Prandtl Sonda #HVAC-01",
+    "device_type": "Pitot Tube",
+    "unit": "m/s",
+    "min_range": 1.0,
+    "max_range": 40.0,
+    "calibration_offset": 0.0,
+    "uuid": "b4f2bf18-1d61-47f4-9563-84a0ef67755f"
+  },
+  "inputs": {
+    "velocity": {
+      "value": 18.5,
+      "uncertainty": 0.37749999999999995,
+      "relative_uncertainty_pct": 2.0405,
+      "unit_symbol": "m/s",
+      "dimension": "Dimension(L=1, M=0, T=-1, I=0, Theta=0, N=0, J=0)"
+    },
+    "density": {
+      "value": 1.204,
+      "uncertainty": 0.012,
+      "relative_uncertainty_pct": 0.9967,
+      "unit_symbol": "kg/m3",
+      "dimension": "Dimension(L=-3, M=1, T=0, I=0, Theta=0, N=0, J=0)"
+    }
+  },
+  "equation": "Dynamic pressure (q = 0.5 * rho * v^2)",
+  "evaluation": {
+    "status": "METROLOGICAL_RISK",
+    "calculated_value": {
+      "value": 206.03449999999998,
+      "uncertainty": 8.655555522277295,
+      "unit_symbol": "Pa"
+    },
+    "limit_value": {
+      "value": 220.0,
+      "unit_symbol": "Pa"
+    },
+    "coverage_factor_k": 2.0,
+    "expanded_uncertainty": 17.31111104455459,
+    "margin_to_limit": 13.96550000000002,
+    "message": "UPOZORENJE (METROLOŠKI RIZIK): Nominalna vrijednost (206.03 Pa) je unutar granica, ali proširena neodređenost (±17.31, k=2.0) probija dozvoljeni limit od 220.00 Pa."
+  }
+}

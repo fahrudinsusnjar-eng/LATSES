@@ -5,6 +5,7 @@ from typing import Dict
 from lat_ces.scientific.dimensions.dimension import Dimension, LENGTH, MASS, TIME
 from lat_ces.scientific.equations.engine import PhysicalDomainError, PhysicalEquation
 from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.units.units import Unit
 
 
 AREA = LENGTH**2
@@ -52,10 +53,11 @@ class DynamicPressureEquation(PhysicalEquation):
 
     def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
         raw_pressure = kwargs["density"] * (kwargs["velocity"] ** 2)
+        pascal = Unit("pascal", "Pa", PRESSURE)
         return PhysicalQuantity(
             value=0.5 * raw_pressure.value,
             uncertainty=0.5 * raw_pressure.uncertainty,
-            unit=raw_pressure.unit,
+            unit=pascal,
         )
 
 
