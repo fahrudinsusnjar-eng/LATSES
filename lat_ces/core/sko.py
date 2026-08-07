@@ -1,0 +1,49 @@
+"""
+LAT-CES Core: Scientific Knowledge Object (SKO)
+Dokumenti: LAT-SCI-CORE-0004 do LAT-SCI-CORE-0008
+"""
+import hashlib
+import json
+from enum import Enum
+from typing import Any, Dict
+
+
+class SKOState(Enum):
+    DRAFT = "DRAFT"
+    RELEASED = "RELEASED"
+
+
+class ScientificKnowledgeObject:
+    def __init__(self, sko_id: str, title: str, payload: Dict[str, Any]):
+        self.sko_id = sko_id
+        self.title = title
+        self.payload = payload
+        self.state = SKOState.DRAFT
+        self._hash = None
+        self._locked = False
+
+    def compute_hash(self) -> str:
+        """Kriptografski SHA-256 hash nad kanonskim sadržajem objekta."""
+        data = {
+            "sko_id": self.sko_id,
+            "title": self.title,
+            "payload": self.payload,
+        }
+        canonical_bytes = json.dumps(data, sort_keys=True).encode("utf-8")
+        return hashlib.sha256(canonical_bytes).hexdigest()
+
+    def lock_and_release(self) -> str:
+        """Prevodi SKO iz DRAFT u RELEASED i zaključava izmjene (Immutability)."""
+        if self._locked:
+            raise RuntimeError("SKO je već zaključan i objavljen.")
+        self.state = SKOState.RELEASED
+        self._hash = self.compute_hash()
+        self._locked = True
+        return self._hash
+
+    def __setattr__(self, name, value):
+        if getattr(self, "_locked", False) and name not in ["_locked"]:
+            raise AttributeError(
+                f"SKO {self.sko_id} je zamrznut (RELEASED) i ne može se mijenjati!"
+            )
+        super().__setattr__(name, value)
