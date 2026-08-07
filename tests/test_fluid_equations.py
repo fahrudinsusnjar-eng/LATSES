@@ -2,9 +2,9 @@ import math
 
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
-from lat_ces.scientific.equations.engine import DimensionalityError
-from lat_ces.scientific.equations.fluids import ContinuityEquation
+from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS, TIME
+from lat_ces.scientific.equations.engine import DimensionalityError, PhysicalDomainError
+from lat_ces.scientific.equations.fluids import ContinuityEquation, PlenumPressureDropEquation
 from lat_ces.scientific.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
@@ -31,3 +31,39 @@ def test_continuity_equation_rejects_wrong_area_dimension():
 
     with pytest.raises(DimensionalityError):
         ContinuityEquation().calculate(area=wrong_area, velocity=velocity)
+
+
+def test_continuity_equation_rejects_negative_velocity():
+    m2 = Unit("square meter", "m²", LENGTH**2)
+    m_s = Unit("meter per second", "m/s", LENGTH / TIME)
+    area = PhysicalQuantity(2.0, 0.1, m2)
+    velocity = PhysicalQuantity(-1.0, 0.1, m_s)
+
+    with pytest.raises(PhysicalDomainError):
+        ContinuityEquation().calculate(area=area, velocity=velocity)
+
+
+def test_plenum_pressure_drop_equation_calculation():
+    pascal = Unit("pascal", "Pa", MASS / (LENGTH * (TIME**2)))
+    zeta = PhysicalQuantity(1.8, 0.05, Unit("dimensionless", "-", DIMENSIONLESS))
+    dynamic_pressure = PhysicalQuantity(120.0, 3.0, pascal)
+
+    pressure_drop = PlenumPressureDropEquation().calculate(
+        resistance_coefficient=zeta,
+        dynamic_pressure=dynamic_pressure,
+    )
+
+    assert pressure_drop.value == pytest.approx(216.0)
+    assert pressure_drop.unit.symbol == "Pa"
+
+
+def test_plenum_pressure_drop_equation_rejects_invalid_domain():
+    pascal = Unit("pascal", "Pa", MASS / (LENGTH * (TIME**2)))
+    zeta = PhysicalQuantity(-0.1, 0.0, Unit("dimensionless", "-", DIMENSIONLESS))
+    dynamic_pressure = PhysicalQuantity(120.0, 3.0, pascal)
+
+    with pytest.raises(PhysicalDomainError):
+        PlenumPressureDropEquation().calculate(
+            resistance_coefficient=zeta,
+            dynamic_pressure=dynamic_pressure,
+        )
