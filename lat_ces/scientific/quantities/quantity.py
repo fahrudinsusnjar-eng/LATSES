@@ -78,6 +78,58 @@ class PhysicalQuantity:
 
         return NotImplemented
 
+    def __truediv__(self, other: Union["PhysicalQuantity", int, float]) -> "PhysicalQuantity":
+        if isinstance(other, PhysicalQuantity):
+            if other.value == 0.0:
+                raise ZeroDivisionError(
+                    "Dijeljenje sa fizikalnom veličinom čija je vrijednost 0.0 nije dozvoljeno."
+                )
+
+            new_val = self._value / other.value
+            new_unit = self._unit / other.unit
+            rel_unc_sq = self.relative_uncertainty**2 + other.relative_uncertainty**2
+            new_unc = abs(new_val) * math.sqrt(rel_unc_sq)
+            return PhysicalQuantity(new_val, new_unc, new_unit)
+
+        if isinstance(other, (int, float)):
+            scalar = float(other)
+            if scalar == 0.0:
+                raise ZeroDivisionError("Dijeljenje sa skalarom 0 nije dozvoljeno.")
+            return PhysicalQuantity(
+                self._value / scalar,
+                self._uncertainty / abs(scalar),
+                self._unit,
+            )
+
+        return NotImplemented
+
+    def __rtruediv__(self, other: Union[int, float]) -> "PhysicalQuantity":
+        if isinstance(other, (int, float)):
+            if self._value == 0.0:
+                raise ZeroDivisionError("Dijeljenje skalara sa nulom nije dozvoljeno.")
+
+            scalar = float(other)
+            new_val = scalar / self._value
+            new_unit = self._unit ** -1
+            new_unc = abs(new_val) * self.relative_uncertainty
+            return PhysicalQuantity(new_val, new_unc, new_unit)
+
+        return NotImplemented
+
+    def __pow__(self, exponent: Union[int, float]) -> "PhysicalQuantity":
+        if not isinstance(exponent, (int, float)):
+            return NotImplemented
+
+        exp = float(exponent)
+        new_val = self._value ** exp
+        new_unit = self._unit ** exp
+        new_unc = abs(new_val) * abs(exp) * self.relative_uncertainty
+        return PhysicalQuantity(new_val, new_unc, new_unit)
+
+    def sqrt(self) -> "PhysicalQuantity":
+        """Return the square root of this physical quantity."""
+        return self ** 0.5
+
     def __repr__(self) -> str:
         return (
             f"{self._value:.4f} ± {self._uncertainty:.4f} {self._unit.symbol} "
