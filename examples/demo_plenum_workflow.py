@@ -4,6 +4,7 @@ from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
 from lat_ces.scientific.equations.fluids import DynamicPressureEquation
 from lat_ces.scientific.quantity import PhysicalQuantity
 from lat_ces.scientific.reports.exporter import SKOReportExporter
+from lat_ces.scientific.reports.pdf_generator import SKOPDFGenerator
 from lat_ces.scientific.units.units import Unit
 
 
@@ -90,9 +91,12 @@ def run_plenum_workflow() -> None:
     with open("demo_report.md", "w", encoding="utf-8") as file:
         file.write(exporter.to_markdown())
 
+    SKOPDFGenerator.generate_pdf(exporter, "demo_report.pdf")
+
     print("\n[5] SKO IZVJESTAJ USPJESNO GENERISAN:")
     print("    JSON Audit Trail: demo_report.json")
     print("    Markdown Certifikat: demo_report.md")
+    print("    Sluzbeni PDF Certifikat: demo_report.pdf")
     print("\n" + "=" * 70)
 
 
