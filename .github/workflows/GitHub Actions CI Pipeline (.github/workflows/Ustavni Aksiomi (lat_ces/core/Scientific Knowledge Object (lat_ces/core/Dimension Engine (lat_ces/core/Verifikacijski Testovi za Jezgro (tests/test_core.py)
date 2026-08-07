@@ -1,0 +1,30 @@
+import pytest
+from lat_ces.core.axioms import ConstitutionalAxiom, AuthorityLevel
+from lat_ces.core.sko import ScientificKnowledgeObject, SKOState
+from lat_ces.core.dimensions import Dimension, LENGTH, TIME, VELOCITY, FORCE
+
+def test_axiom_authority():
+    assert ConstitutionalAxiom.validate_authority(AuthorityLevel.PHYSICAL_REALITY, AuthorityLevel.SOFTWARE_ENGINE) is True
+    assert ConstitutionalAxiom.validate_authority(AuthorityLevel.AI_ASSISTANT, AuthorityLevel.PHYSICAL_REALITY) is False
+
+def test_sko_immutability():
+    sko = ScientificKnowledgeObject("SKO-001", "Test SKO", {"param": 42})
+    assert sko.state == SKOState.DRAFT
+    
+    sko_hash = sko.lock_and_release()
+    assert sko.state == SKOState.RELEASED
+    assert len(sko_hash) == 64  # SHA-256 duljina
+
+    with pytest.raises(AttributeError):
+        sko.title = "Novi Naslov"  # Izmjena mora pasti!
+
+def test_dimension_algebra():
+    # Brzina = Dužina / Vrijeme
+    calculated_velocity = LENGTH / TIME
+    assert calculated_velocity == VELOCITY
+
+    # Sila = Masa * Ubrzanje
+    MASS_DIM = Dimension(M=1)
+    ACC_DIM = Dimension(L=1, T=-2)
+    calculated_force = MASS_DIM * ACC_DIM
+    assert calculated_force == FORCE
