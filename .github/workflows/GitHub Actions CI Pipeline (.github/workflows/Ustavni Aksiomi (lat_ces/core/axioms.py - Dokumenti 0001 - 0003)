@@ -1,0 +1,20 @@
+"""
+LAT-CES Core: Constitutional Axioms (CAX)
+Dokumenti: LAT-CES-0001 do LAT-CES-0003
+"""
+from enum import Enum, auto
+
+class AuthorityLevel(Enum):
+    PHYSICAL_REALITY = 1  # Najviši autoritet: Stvarna fizička mjerenja
+    MATHEMATICAL_MODEL = 2
+    SOFTWARE_ENGINE = 3
+    AI_ASSISTANT = 4       # Najniži autoritet
+
+class ConstitutionalAxiom:
+    AXIOM_1_REALITY_SUPREMACY = "Fizička realnost i mjerenja imaju apsolutni autoritet nad modelima."
+    AXIOM_7_TRACEABILITY = "Svaka inženjerska odluka i objekt mora imati potpuni kriptografski dokaz porijekla."
+
+    @staticmethod
+    def validate_authority(higher: AuthorityLevel, lower: AuthorityLevel) -> bool:
+        """Osigurava da niži autoritet ne može preglasati viši autoritet."""
+        return higher.value < lower.value
