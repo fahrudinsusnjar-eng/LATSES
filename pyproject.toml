@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = []
 
+[project.scripts]
+lat-ces = "lat_ces.cli:main"
+
 [tool.setuptools]
 packages = ["lat_ses", "lat_ces", "lat_ces.core"]
 

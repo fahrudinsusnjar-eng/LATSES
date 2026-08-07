@@ -1,0 +1,29 @@
+{
+  "project_name": "Ventilacija Sektor Sjever",
+  "engineer_name": "fahrudin Susnjar",
+  "plenum_id": "PLENUM-NORTH-01",
+  "equation_name": "Dinamički Pritisak (p_dyn = 0.5 * rho * v^2)",
+  "coverage_factor": 2.0,
+  "inputs": {
+    "velocity": {
+      "value": 18.5,
+      "uncertainty": 0.378,
+      "unit_symbol": "m/s"
+    },
+    "density": {
+      "value": 1.204,
+      "uncertainty": 0.012,
+      "unit_symbol": "kg/m³"
+    }
+  },
+  "calculated_value": {
+    "value": 206.04,
+    "uncertainty": 8.68,
+    "unit_symbol": "Pa"
+  },
+  "limit_value": {
+    "value": 220.0,
+    "uncertainty": 0.0,
+    "unit_symbol": "Pa"
+  }
+}
