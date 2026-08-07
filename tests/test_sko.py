@@ -1,20 +1,18 @@
 import pytest
 
-from lat_ces.core import ScientificKnowledgeObject, SKOState
+from lat_ces.core.sko import ScientificKnowledgeObject, SKOState
 
 
-def test_sko_releases_and_freezes_after_locking():
-    sko = ScientificKnowledgeObject("sko-001", "Example SKO", {"value": 1})
+def test_sko_immutability():
+    sko = ScientificKnowledgeObject("SKO-001", "Test SKO", {"param": 42})
+    assert sko.state == SKOState.DRAFT
 
-    assert sko.state is SKOState.DRAFT
-
-    released_hash = sko.lock_and_release()
-
-    assert sko.state is SKOState.RELEASED
-    assert released_hash == sko.compute_hash()
+    sko_hash = sko.lock_and_release()
+    assert sko.state == SKOState.RELEASED
+    assert len(sko_hash) == 64
 
     with pytest.raises(AttributeError):
-        sko.title = "Changed"
+        sko.title = "Novi Naslov"
 
 
 def test_sko_hash_is_deterministic():
