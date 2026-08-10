@@ -287,6 +287,37 @@ class ReynoldsNumberEquation(PhysicalEquation):
         )
 
 
+class MachNumberEquation(PhysicalEquation):
+    """Mach number, Ma = velocity / speed_of_sound."""
+
+    @property
+    def name(self) -> str:
+        return "Machov broj (Ma = v / a)"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "velocity": VELOCITY,
+            "speed_of_sound": VELOCITY,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["velocity"].value < 0.0:
+            raise PhysicalDomainError("Brzina fluida ne može biti negativna.")
+
+        if kwargs["speed_of_sound"].value <= 0.0:
+            raise PhysicalDomainError("Brzina zvuka mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        mach = kwargs["velocity"] / kwargs["speed_of_sound"]
+
+        return PhysicalQuantity(
+            mach.value,
+            mach.uncertainty,
+            Unit("dimensionless", "-", DIMENSIONLESS),
+        )
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",
@@ -304,4 +335,5 @@ __all__ = [
     "VolumetricFlowEquation",
     "VenturiFlowEquation",
     "ReynoldsNumberEquation",
+    "MachNumberEquation",
 ]

@@ -6,6 +6,7 @@ from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS,
 from lat_ces.scientific.equations.engine import DimensionalityError, PhysicalDomainError
 from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
+    MachNumberEquation,
     MassFlowEquation,
     PlenumPressureDropEquation,
     ReynoldsNumberEquation,
@@ -156,6 +157,58 @@ def test_reynolds_number_rejects_non_positive_viscosity():
                 0.0,
                 0.0,
                 viscosity_unit,
+            ),
+        )
+
+
+def test_mach_number_equation():
+    velocity_unit = Unit(
+        "meter per second",
+        "m/s",
+        LENGTH / TIME,
+    )
+
+    velocity = PhysicalQuantity(
+        340.0,
+        3.4,
+        velocity_unit,
+    )
+
+    speed_of_sound = PhysicalQuantity(
+        340.0,
+        1.7,
+        velocity_unit,
+    )
+
+    result = MachNumberEquation().calculate(
+        velocity=velocity,
+        speed_of_sound=speed_of_sound,
+    )
+
+    assert result.value == pytest.approx(1.0)
+    assert result.unit.symbol == "-"
+    assert result.dimension == DIMENSIONLESS
+    assert result.uncertainty > 0.0
+
+
+def test_mach_number_rejects_non_positive_speed_of_sound():
+    velocity_unit = Unit(
+        "meter per second",
+        "m/s",
+        LENGTH / TIME,
+    )
+
+    with pytest.raises(PhysicalDomainError):
+        MachNumberEquation().calculate(
+            velocity=PhysicalQuantity(
+                100.0,
+                0.0,
+                velocity_unit,
+            ),
+            speed_of_sound=PhysicalQuantity(
+                0.0,
+                0.0,
+                velocity_unit,
             ),
         )
 
