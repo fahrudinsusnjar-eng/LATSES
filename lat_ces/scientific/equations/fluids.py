@@ -10,7 +10,7 @@ from lat_ces.scientific.dimensions.dimension import (
     TIME,
 )
 from lat_ces.scientific.equations.engine import PhysicalDomainError, PhysicalEquation
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 
@@ -64,9 +64,9 @@ class DynamicPressureEquation(PhysicalEquation):
         raw_pressure = kwargs["density"] * (kwargs["velocity"] ** 2)
         pascal = Unit("pascal", "Pa", PRESSURE)
         return PhysicalQuantity(
-            value=0.5 * raw_pressure.value,
-            uncertainty=0.5 * raw_pressure.uncertainty,
-            unit=pascal,
+            0.5 * raw_pressure.value,
+            0.5 * raw_pressure.uncertainty,
+            pascal,
         )
 
 
@@ -93,9 +93,9 @@ class PlenumPressureDropEquation(PhysicalEquation):
     def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
         pressure_drop = kwargs["resistance_coefficient"] * kwargs["dynamic_pressure"]
         return PhysicalQuantity(
-            value=pressure_drop.value,
-            uncertainty=pressure_drop.uncertainty,
-            unit=kwargs["dynamic_pressure"].unit,
+            pressure_drop.value,
+            pressure_drop.uncertainty,
+            kwargs["dynamic_pressure"].unit,
         )
 
 
@@ -171,9 +171,9 @@ class VenturiFlowEquation(PhysicalEquation):
         flow_uncertainty = abs(flow_value) * rel_flow
 
         return PhysicalQuantity(
-            value=flow_value,
-            uncertainty=flow_uncertainty,
-            unit=Unit("cubic meter per second", "m³/s", VOLUMETRIC_FLOW),
+            flow_value,
+            flow_uncertainty,
+            Unit("cubic meter per second", "m³/s", VOLUMETRIC_FLOW),
         )
 
 

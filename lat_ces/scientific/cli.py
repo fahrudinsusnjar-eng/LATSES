@@ -32,10 +32,12 @@ def _parse_quantity_dict(data: Dict[str, Any]) -> PhysicalQuantity:
 
     dimension = dim_map.get(symbol, DIMENSIONLESS)
     unit = Unit(symbol, symbol, dimension)
+    value = float(data["value"])
+    uncertainty = float(data.get("uncertainty", 0.0))
     return PhysicalQuantity(
-        value=float(data["value"]),
-        uncertainty=float(data.get("uncertainty", 0.0)),
-        unit=unit,
+        value,
+        uncertainty,
+        unit,
     )
 
 

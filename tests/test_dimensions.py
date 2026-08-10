@@ -34,6 +34,23 @@ def test_dimension_algebra():
     assert MASS == Dimension(M=1)
 
 
+def test_dimension_multiplication():
+    area_dim = LENGTH * LENGTH
+    assert area_dim.exponents[LENGTH.name] == 2
+
+
+def test_dimension_division():
+    velocity_dim = LENGTH / TIME
+    assert velocity_dim.exponents[LENGTH.name] == 1
+    assert velocity_dim.exponents[TIME.name] == -1
+
+
+def test_complex_dimension_compatibility():
+    d1 = LENGTH * TIME ** -1
+    d2 = LENGTH / TIME
+    assert d1.is_compatible(d2)
+
+
 def test_si_base_units_registered():
     assert meter.symbol == "m" and meter.dimension == LENGTH
     assert kilogram.symbol == "kg" and kilogram.dimension == MASS

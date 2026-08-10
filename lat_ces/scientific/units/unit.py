@@ -1,15 +1,17 @@
 """
-LAT-CES Scientific Core
-Unit Engine Reference Implementation (LAT-SCI-CORE-0016)
+LAT-CES Scientific Units Compatibility Layer.
+
+Canonical Unit implementation:
+    lat_ces.core.dimensions.Unit
 """
 
-from dataclasses import dataclass
-from typing import Dict, Optional
-
-from lat_ces.scientific.units.dimension import (
+from lat_ces.core.dimensions import SIUnit, Unit, UnitSKOError, convert_unit
+from lat_ces.scientific.dimensions.dimension import (
     ACCELERATION,
     AMOUNT,
     CURRENT,
+    DIMENSIONLESS,
+    DENSITY,
     FORCE,
     LENGTH,
     LUMINOUS_INTENSITY,
@@ -17,72 +19,54 @@ from lat_ces.scientific.units.dimension import (
     TEMPERATURE,
     TIME,
     VELOCITY,
-    Dimension,
 )
 
-
-class UnitError(Exception):
-    """Base exception for Unit engine operations."""
-
-    pass
+UnitError = UnitSKOError
+IncompatibleUnitsError = UnitSKOError
+convert = convert_unit
 
 
-@dataclass(frozen=True)
-class Unit:
-    """
-    Represents a physical unit bound to a Dimension.
-    """
+def _dimensions_compatible(left, right) -> bool:
+    if hasattr(left, "is_compatible"):
+        return left.is_compatible(right)
+    return left == right
 
-    name: str
-    symbol: str
-    dimension: Dimension
-    scale_factor: float = 1.0
-    offset: float = 0.0
 
-    def __post_init__(self):
-        if not self.name or not self.symbol:
-            raise UnitError("Unit requires valid name and symbol.")
-        if not isinstance(self.dimension, Dimension):
-            raise UnitError("Unit must be bound to a valid Dimension instance.")
-        if self.scale_factor <= 0:
-            raise UnitError("Scale factor must be strictly positive.")
+def _unit_is_compatible(self: Unit, other: object) -> bool:
+    if not isinstance(other, Unit):
+        return False
+    return _dimensions_compatible(self.dimension, other.dimension)
 
-    def is_compatible(self, other: "Unit") -> bool:
-        """Checks if two units share the same physical dimension."""
-        if not isinstance(other, Unit):
-            return False
-        return self.dimension == other.dimension
 
-    def get_conversion_factor_to(self, target_unit: "Unit") -> float:
-        """Calculates scale factor to convert value to target unit."""
-        if not self.is_compatible(target_unit):
-            raise UnitError(f"Incompatible unit conversion: {self.symbol} -> {target_unit.symbol}")
-        return self.scale_factor / target_unit.scale_factor
+def _unit_convert_to_base(self: Unit, value: float) -> float:
+    return (value * self.scale_factor) + self.offset
 
-    def __mul__(self, other: "Unit") -> "Unit":
-        if not isinstance(other, Unit):
-            raise UnitError("Can only multiply Unit with another Unit.")
-        new_dim = self.dimension * other.dimension
-        return Unit(
-            name=f"{self.name}*{other.name}",
-            symbol=f"{self.symbol}*{other.symbol}",
-            dimension=new_dim,
-            scale_factor=self.scale_factor * other.scale_factor,
+
+def _unit_convert_from_base(self: Unit, base_value: float) -> float:
+    return (base_value - self.offset) / self.scale_factor
+
+
+def _unit_get_conversion_factor_to(self: Unit, target_unit: Unit) -> float:
+    if not self.is_compatible(target_unit):
+        raise IncompatibleUnitsError(
+            f"Cannot convert {self.symbol} ({self.dimension}) to {target_unit.symbol} ({target_unit.dimension})"
         )
+    if self.offset != 0.0 or target_unit.offset != 0.0:
+        raise UnitError("Use convert() for affine conversions with offsets.")
+    return self.scale_factor / target_unit.scale_factor
 
-    def __truediv__(self, other: "Unit") -> "Unit":
-        if not isinstance(other, Unit):
-            raise UnitError("Can only divide Unit by another Unit.")
-        new_dim = self.dimension / other.dimension
-        return Unit(
-            name=f"{self.name}/{other.name}",
-            symbol=f"{self.symbol}/{other.symbol}",
-            dimension=new_dim,
-            scale_factor=self.scale_factor / other.scale_factor,
-        )
 
+if not hasattr(Unit, "is_compatible"):
+    Unit.is_compatible = _unit_is_compatible
+if not hasattr(Unit, "convert_to_base"):
+    Unit.convert_to_base = _unit_convert_to_base
+if not hasattr(Unit, "convert_from_base"):
+    Unit.convert_from_base = _unit_convert_from_base
+if not hasattr(Unit, "get_conversion_factor_to"):
+    Unit.get_conversion_factor_to = _unit_get_conversion_factor_to
 
 METER = Unit("meter", "m", LENGTH, 1.0)
+CENTIMETER = Unit("centimeter", "cm", LENGTH, 0.01)
 KILOGRAM = Unit("kilogram", "kg", MASS, 1.0)
 SECOND = Unit("second", "s", TIME, 1.0)
 AMPERE = Unit("ampere", "A", CURRENT, 1.0)
@@ -92,9 +76,11 @@ CANDELA = Unit("candela", "cd", LUMINOUS_INTENSITY, 1.0)
 
 NEWTON = Unit("newton", "N", FORCE, 1.0)
 METER_PER_SECOND = METER / SECOND
+METERS_PER_SECOND_SQUARED = Unit("meter per second squared", "m/s^2", ACCELERATION, 1.0)
 
-SI_REGISTRY: Dict[str, Unit] = {
+SI_REGISTRY = {
     "m": METER,
+    "cm": CENTIMETER,
     "kg": KILOGRAM,
     "s": SECOND,
     "A": AMPERE,
@@ -103,6 +89,27 @@ SI_REGISTRY: Dict[str, Unit] = {
     "cd": CANDELA,
     "N": NEWTON,
     "m/s": METER_PER_SECOND,
+    "m/s^2": METERS_PER_SECOND_SQUARED,
 }
 
-__all__ = ["Unit", "UnitError", "SI_REGISTRY"]
+__all__ = [
+    "Unit",
+    "UnitError",
+    "UnitSKOError",
+    "IncompatibleUnitsError",
+    "SIUnit",
+    "convert",
+    "convert_unit",
+    "SI_REGISTRY",
+    "METER",
+    "CENTIMETER",
+    "KILOGRAM",
+    "SECOND",
+    "AMPERE",
+    "KELVIN",
+    "MOLE",
+    "CANDELA",
+    "NEWTON",
+    "METER_PER_SECOND",
+    "METERS_PER_SECOND_SQUARED",
+]

@@ -5,12 +5,33 @@ import pytest
 from lat_ces.scientific.dimensions.dimension import LENGTH
 from lat_ces.scientific.measurement import (
     AccuracySpec,
+    Measurement,
     MeasurementDevice,
     OutOfRangeError,
     create_diff_pressure_sensor,
     create_pitot_tube,
 )
+from lat_ces.scientific.units.unit import METER
 from lat_ces.scientific.units.units import Unit
+
+
+def test_measurement_creation():
+    m = Measurement(value=10.0, unit=METER, uncertainty=0.1)
+
+    assert m.value == 10.0
+    assert m.uncertainty == 0.1
+    assert m.relative_uncertainty == 0.01
+
+
+def test_measurement_addition():
+    m1 = Measurement(10.0, METER, uncertainty=0.3)
+    m2 = Measurement(20.0, METER, uncertainty=0.4)
+
+    res = m1 + m2
+
+    assert isinstance(res, Measurement)
+    assert res.value == 30.0
+    assert res.uncertainty == 0.5
 
 
 def test_measurement_device_applies_calibration_and_uncertainty():
