@@ -1,16 +1,16 @@
-"""Scientific model metadata and consolidation primitives.
-
-The models package is intentionally additive.
-
-Existing equation classes under
-lat_ces.scientific.equations remain the executable calculation layer.
-"""
-
-from .contract import ContractIssue, ScientificModelContract
 from .metadata import (
     ModelInput,
     ModelOutput,
     ScientificModelMetadata,
+)
+from .contract import (
+    ContractIssue,
+    ScientificModelContract,
+)
+from .registry import (
+    ModelRegistry,
+    ModelRegistryEntry,
+    ModelStatus,
 )
 
 __all__ = [
@@ -19,4 +19,7 @@ __all__ = [
     "ScientificModelMetadata",
     "ContractIssue",
     "ScientificModelContract",
+    "ModelRegistry",
+    "ModelRegistryEntry",
+    "ModelStatus",
 ]
