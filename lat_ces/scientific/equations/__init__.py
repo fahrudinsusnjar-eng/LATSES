@@ -4,15 +4,17 @@ from lat_ces.scientific.equations.engine import (
     PhysicalEquation,
 )
 from .fluids import (
+    BernoulliTotalPressureEquation,
     BiotNumberEquation,
     ContinuityEquation,
+    DynamicPressureEquation,
+    FourierNumberEquation,
     MachNumberEquation,
-    MassFlowEquation,
     NusseltNumberEquation,
     PlenumPressureDropEquation,
     PrandtlNumberEquation,
     ReynoldsNumberEquation,
-    VolumetricFlowEquation,
+    VenturiFlowEquation,
 )
 
 __all__ = [
@@ -29,4 +31,5 @@ __all__ = [
     "PrandtlNumberEquation",
     "NusseltNumberEquation",
     "BiotNumberEquation",
+    "FourierNumberEquation",
 ]

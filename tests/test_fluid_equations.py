@@ -16,6 +16,7 @@ from lat_ces.scientific.equations.engine import (
 from lat_ces.scientific.equations.fluids import (
     BiotNumberEquation,
     ContinuityEquation,
+    FourierNumberEquation,
     HEAT_TRANSFER_COEFFICIENT,
     MachNumberEquation,
     MassFlowEquation,
@@ -419,6 +420,86 @@ def test_biot_number_rejects_wrong_dimensions():
             characteristic_length=characteristic_length,
             thermal_conductivity=thermal_conductivity,
         )
+
+
+def test_fourier_number_equation():
+    """Fo = alpha * t / Lc²."""
+    equation = FourierNumberEquation()
+
+    thermal_diffusivity = PhysicalQuantity(
+        1.0e-5,
+        0.0,
+        Unit(
+            "m2/s",
+            "m²/s",
+            LENGTH**2 / TIME,
+        ),
+    )
+
+    time = PhysicalQuantity(
+        100.0,
+        0.0,
+        Unit("s", "s", TIME),
+    )
+
+    characteristic_length = PhysicalQuantity(
+        0.1,
+        0.0,
+        Unit("m", "m", LENGTH),
+    )
+
+    result = equation.calculate(
+        thermal_diffusivity=thermal_diffusivity,
+        time=time,
+        characteristic_length=characteristic_length,
+    )
+
+    assert result.value == pytest.approx(0.1)
+    assert result.dimension == DIMENSIONLESS
+
+
+def test_fourier_number_rejects_wrong_dimensions():
+    """Fourier number must reject invalid input dimensions."""
+    equation = FourierNumberEquation()
+
+    velocity = PhysicalQuantity(
+        10.0,
+        0.0,
+        Unit("m/s", "m/s", LENGTH / TIME),
+    )
+
+    time = PhysicalQuantity(
+        100.0,
+        0.0,
+        Unit("s", "s", TIME),
+    )
+
+    characteristic_length = PhysicalQuantity(
+        0.1,
+        0.0,
+        Unit("m", "m", LENGTH),
+    )
+
+    with pytest.raises(DimensionalityError):
+        equation.calculate(
+            thermal_diffusivity=velocity,
+            time=time,
+            characteristic_length=characteristic_length,
+        )
+
+
+def test_fourier_number_length_squared_dimension():
+    """Squaring a length must produce an area dimension."""
+    length = PhysicalQuantity(
+        0.1,
+        0.0,
+        Unit("m", "m", LENGTH),
+    )
+
+    squared = length ** 2
+
+    assert squared.value == pytest.approx(0.01)
+    assert squared.dimension == LENGTH**2
 
 
 def test_plenum_pressure_drop_equation_calculation():

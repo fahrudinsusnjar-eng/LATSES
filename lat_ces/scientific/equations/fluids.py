@@ -441,6 +441,49 @@ class BiotNumberEquation(PhysicalEquation):
         )
 
 
+class FourierNumberEquation(PhysicalEquation):
+    """Calculate the Fourier number.
+
+    Fo = alpha * t / Lc²
+
+    where:
+        alpha = thermal diffusivity
+        t     = characteristic time
+        Lc    = characteristic length
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Fourier number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "thermal_diffusivity": LENGTH**2 / TIME,
+            "time": TIME,
+            "characteristic_length": LENGTH,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["thermal_diffusivity"].value < 0.0:
+            raise PhysicalDomainError("Toplotni difuzivitet ne može biti negativan.")
+
+        if kwargs["time"].value < 0.0:
+            raise PhysicalDomainError("Vreme ne može biti negativno.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["thermal_diffusivity"]
+            * kwargs["time"]
+            / (kwargs["characteristic_length"] ** 2)
+        )
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",
@@ -460,4 +503,5 @@ __all__ = [
     "ReynoldsNumberEquation",
     "MachNumberEquation",
     "PrandtlNumberEquation",
+    "FourierNumberEquation",
 ]
