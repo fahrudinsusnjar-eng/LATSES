@@ -1,3 +1,12 @@
+
+from .reason_codes import ApplicabilityReason
+from .applicability import (
+    ApplicabilityEvaluator,
+    ApplicabilityRequest,
+    ApplicabilityResult,
+    ApplicabilityStatus,
+)
+
 from .metadata import (
     ModelInput,
     ModelOutput,
@@ -23,3 +32,10 @@ __all__ = [
     "ModelRegistryEntry",
     "ModelStatus",
 ]
+from .reason_codes import ApplicabilityReason
+from .applicability import (
+    ApplicabilityEvaluator,
+    ApplicabilityRequest,
+    ApplicabilityResult,
+    ApplicabilityStatus,
+)
