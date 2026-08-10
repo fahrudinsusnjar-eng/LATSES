@@ -5,10 +5,10 @@ from lat_ces.scientific.equations.engine import (
 )
 from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
-    DynamicPressureEquation,
+    MassFlowEquation,
     PlenumPressureDropEquation,
-    VenturiFlowEquation,
-    BernoulliTotalPressureEquation,
+    ReynoldsNumberEquation,
+    VolumetricFlowEquation,
 )
 
 __all__ = [
@@ -20,4 +20,5 @@ __all__ = [
     "PlenumPressureDropEquation",
     "VenturiFlowEquation",
     "BernoulliTotalPressureEquation",
+    "ReynoldsNumberEquation",
 ]

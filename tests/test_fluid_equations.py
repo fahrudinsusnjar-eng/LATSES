@@ -8,6 +8,7 @@ from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
     MassFlowEquation,
     PlenumPressureDropEquation,
+    ReynoldsNumberEquation,
     VolumetricFlowEquation,
 )
 from lat_ces.scientific.quantities.quantity import PhysicalQuantity
@@ -72,6 +73,91 @@ def test_continuity_equation_rejects_negative_velocity():
 
     with pytest.raises(PhysicalDomainError):
         ContinuityEquation().calculate(area=area, velocity=velocity)
+
+
+def test_reynolds_number_equation():
+    density_unit = Unit(
+        "kilogram per cubic meter",
+        "kg/m3",
+        MASS / (LENGTH**3),
+    )
+    velocity_unit = Unit(
+        "meter per second",
+        "m/s",
+        LENGTH / TIME,
+    )
+    length_unit = Unit(
+        "meter",
+        "m",
+        LENGTH,
+    )
+    viscosity_unit = Unit(
+        "pascal second",
+        "Pa·s",
+        MASS / (LENGTH * TIME),
+    )
+
+    density = PhysicalQuantity(1.2, 0.012, density_unit)
+    velocity = PhysicalQuantity(10.0, 0.1, velocity_unit)
+    characteristic_length = PhysicalQuantity(
+        0.1,
+        0.001,
+        length_unit,
+    )
+    dynamic_viscosity = PhysicalQuantity(
+        1.8e-5,
+        1.8e-7,
+        viscosity_unit,
+    )
+
+    result = ReynoldsNumberEquation().calculate(
+        density=density,
+        velocity=velocity,
+        characteristic_length=characteristic_length,
+        dynamic_viscosity=dynamic_viscosity,
+    )
+
+    assert result.value == pytest.approx(
+        (1.2 * 10.0 * 0.1) / 1.8e-5
+    )
+    assert result.unit.symbol == "-"
+    assert result.dimension == DIMENSIONLESS
+    assert result.uncertainty > 0.0
+
+
+def test_reynolds_number_rejects_non_positive_viscosity():
+    density_unit = Unit(
+        "kilogram per cubic meter",
+        "kg/m3",
+        MASS / (LENGTH**3),
+    )
+    velocity_unit = Unit(
+        "meter per second",
+        "m/s",
+        LENGTH / TIME,
+    )
+    length_unit = Unit(
+        "meter",
+        "m",
+        LENGTH,
+    )
+    viscosity_unit = Unit(
+        "pascal second",
+        "Pa·s",
+        MASS / (LENGTH * TIME),
+    )
+
+    with pytest.raises(PhysicalDomainError):
+        ReynoldsNumberEquation().calculate(
+            density=PhysicalQuantity(1.2, 0.0, density_unit),
+            velocity=PhysicalQuantity(10.0, 0.0, velocity_unit),
+            characteristic_length=PhysicalQuantity(0.1, 0.0, length_unit),
+            dynamic_viscosity=PhysicalQuantity(
+                0.0,
+                0.0,
+                viscosity_unit,
+            ),
+        )
 
 
 def test_plenum_pressure_drop_equation_calculation():

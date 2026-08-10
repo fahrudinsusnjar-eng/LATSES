@@ -20,6 +20,7 @@ ACCELERATION = LENGTH / (TIME**2)
 VOLUMETRIC_FLOW = LENGTH**3 / TIME
 DENSITY = MASS / (LENGTH**3)
 MASS_FLOW = MASS / TIME
+DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
 PRESSURE = MASS / (LENGTH * (TIME**2))
 
 
@@ -242,10 +243,55 @@ class BernoulliTotalPressureEquation(PhysicalEquation):
         return static_pressure + dynamic_pressure + hydrostatic_pressure
 
 
+class ReynoldsNumberEquation(PhysicalEquation):
+    """Reynolds number, Re = rho * v * D / mu."""
+
+    @property
+    def name(self) -> str:
+        return "Reynoldsov broj (Re = rho * v * D / mu)"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "density": DENSITY,
+            "velocity": VELOCITY,
+            "characteristic_length": LENGTH,
+            "dynamic_viscosity": DYNAMIC_VISCOSITY,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["density"].value <= 0.0:
+            raise PhysicalDomainError("Gustoća fluida mora biti veća od nule.")
+
+        if kwargs["velocity"].value < 0.0:
+            raise PhysicalDomainError("Brzina ne može biti negativna.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["dynamic_viscosity"].value <= 0.0:
+            raise PhysicalDomainError("Dinamička viskoznost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        reynolds = (
+            kwargs["density"]
+            * kwargs["velocity"]
+            * kwargs["characteristic_length"]
+            / kwargs["dynamic_viscosity"]
+        )
+
+        return PhysicalQuantity(
+            reynolds.value,
+            reynolds.uncertainty,
+            Unit("dimensionless", "-", DIMENSIONLESS),
+        )
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",
     "DENSITY",
+    "DYNAMIC_VISCOSITY",
     "MASS_FLOW",
     "PRESSURE",
     "VELOCITY",
@@ -257,4 +303,5 @@ __all__ = [
     "PlenumPressureDropEquation",
     "VolumetricFlowEquation",
     "VenturiFlowEquation",
+    "ReynoldsNumberEquation",
 ]
