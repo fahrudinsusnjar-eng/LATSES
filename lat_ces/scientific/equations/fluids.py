@@ -318,6 +318,40 @@ class MachNumberEquation(PhysicalEquation):
         )
 
 
+class PrandtlNumberEquation(PhysicalEquation):
+    """Calculate the Prandtl number.
+
+    Pr = nu / alpha
+
+    where:
+        nu    = kinematic viscosity [m²/s]
+        alpha = thermal diffusivity [m²/s]
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Prandtl number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "kinematic_viscosity": LENGTH**2 / TIME,
+            "thermal_diffusivity": LENGTH**2 / TIME,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["kinematic_viscosity"].value < 0.0:
+            raise PhysicalDomainError("Kinematička viskoznost ne može biti negativna.")
+
+        if kwargs["thermal_diffusivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplinski difuzivitet mora biti veći od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return kwargs["kinematic_viscosity"] / kwargs["thermal_diffusivity"]
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",
@@ -336,4 +370,5 @@ __all__ = [
     "VenturiFlowEquation",
     "ReynoldsNumberEquation",
     "MachNumberEquation",
+    "PrandtlNumberEquation",
 ]

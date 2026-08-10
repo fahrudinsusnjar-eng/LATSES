@@ -2,13 +2,22 @@ import math
 
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS, TIME
-from lat_ces.scientific.equations.engine import DimensionalityError, PhysicalDomainError
+from lat_ces.scientific.dimensions.dimension import (
+    DIMENSIONLESS,
+    LENGTH,
+    MASS,
+    TIME,
+)
+from lat_ces.scientific.equations.engine import (
+    DimensionalityError,
+    PhysicalDomainError,
+)
 from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
     MachNumberEquation,
     MassFlowEquation,
     PlenumPressureDropEquation,
+    PrandtlNumberEquation,
     ReynoldsNumberEquation,
     VolumetricFlowEquation,
 )
@@ -210,6 +219,54 @@ def test_mach_number_rejects_non_positive_speed_of_sound():
                 0.0,
                 velocity_unit,
             ),
+        )
+
+
+def test_prandtl_number_equation():
+    """Pr = nu / alpha should produce a dimensionless result."""
+    equation = PrandtlNumberEquation()
+
+    nu = PhysicalQuantity(
+        1.5e-5,
+        0.0,
+        Unit("m2/s", "m²/s", LENGTH**2 / TIME),
+    )
+
+    alpha = PhysicalQuantity(
+        2.2e-5,
+        0.0,
+        Unit("m2/s", "m²/s", LENGTH**2 / TIME),
+    )
+
+    result = equation.calculate(
+        kinematic_viscosity=nu,
+        thermal_diffusivity=alpha,
+    )
+
+    assert result.value == pytest.approx(1.5e-5 / 2.2e-5)
+    assert result.dimension == DIMENSIONLESS
+
+
+def test_prandtl_number_rejects_wrong_dimensions():
+    """Prandtl number inputs must both have dimensions L²/T."""
+    equation = PrandtlNumberEquation()
+
+    velocity = PhysicalQuantity(
+        10.0,
+        0.0,
+        Unit("m/s", "m/s", LENGTH / TIME),
+    )
+
+    alpha = PhysicalQuantity(
+        2.2e-5,
+        0.0,
+        Unit("m2/s", "m²/s", LENGTH**2 / TIME),
+    )
+
+    with pytest.raises(DimensionalityError):
+        equation.calculate(
+            kinematic_viscosity=velocity,
+            thermal_diffusivity=alpha,
         )
 
 
