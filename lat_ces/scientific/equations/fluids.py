@@ -398,6 +398,49 @@ class NusseltNumberEquation(PhysicalEquation):
         )
 
 
+class BiotNumberEquation(PhysicalEquation):
+    """Calculate the Biot number.
+
+    Bi = h * Lc / k
+
+    where:
+        h  = convective heat-transfer coefficient
+        Lc = characteristic length
+        k  = thermal conductivity
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Biot number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "heat_transfer_coefficient": HEAT_TRANSFER_COEFFICIENT,
+            "characteristic_length": LENGTH,
+            "thermal_conductivity": MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["heat_transfer_coefficient"].value < 0.0:
+            raise PhysicalDomainError("Koeficijent prenosa toplote ne može biti negativan.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["thermal_conductivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplotna provodljivost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["heat_transfer_coefficient"]
+            * kwargs["characteristic_length"]
+            / kwargs["thermal_conductivity"]
+        )
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",

@@ -3,7 +3,8 @@ from lat_ces.scientific.equations.engine import (
     PhysicalDomainError,
     PhysicalEquation,
 )
-from lat_ces.scientific.equations.fluids import (
+from .fluids import (
+    BiotNumberEquation,
     ContinuityEquation,
     MachNumberEquation,
     MassFlowEquation,
@@ -27,4 +28,5 @@ __all__ = [
     "MachNumberEquation",
     "PrandtlNumberEquation",
     "NusseltNumberEquation",
+    "BiotNumberEquation",
 ]
