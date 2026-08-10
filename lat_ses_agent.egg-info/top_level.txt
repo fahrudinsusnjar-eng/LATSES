@@ -1,2 +1,0 @@
-lat_ces
-lat_ses
