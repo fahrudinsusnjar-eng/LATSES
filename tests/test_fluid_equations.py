@@ -6,6 +6,7 @@ from lat_ces.scientific.dimensions.dimension import (
     DIMENSIONLESS,
     LENGTH,
     MASS,
+    TEMPERATURE,
     TIME,
 )
 from lat_ces.scientific.equations.engine import (
@@ -14,8 +15,10 @@ from lat_ces.scientific.equations.engine import (
 )
 from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
+    HEAT_TRANSFER_COEFFICIENT,
     MachNumberEquation,
     MassFlowEquation,
+    NusseltNumberEquation,
     PlenumPressureDropEquation,
     PrandtlNumberEquation,
     ReynoldsNumberEquation,
@@ -267,6 +270,79 @@ def test_prandtl_number_rejects_wrong_dimensions():
         equation.calculate(
             kinematic_viscosity=velocity,
             thermal_diffusivity=alpha,
+        )
+
+
+def test_nusselt_number_equation():
+    """Nu = h * L / k."""
+    equation = NusseltNumberEquation()
+
+    heat_transfer_coefficient = PhysicalQuantity(
+        100.0,
+        0.0,
+        Unit(
+            "W/(m2*K)",
+            "W/(m²·K)",
+            MASS / (TIME**3 * TEMPERATURE),
+        ),
+    )
+
+    characteristic_length = PhysicalQuantity(
+        0.1,
+        0.0,
+        Unit("m", "m", LENGTH),
+    )
+
+    thermal_conductivity = PhysicalQuantity(
+        0.5,
+        0.0,
+        Unit(
+            "W/(m*K)",
+            "W/(m·K)",
+            MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        ),
+    )
+
+    result = equation.calculate(
+        heat_transfer_coefficient=heat_transfer_coefficient,
+        characteristic_length=characteristic_length,
+        thermal_conductivity=thermal_conductivity,
+    )
+
+    assert result.value == pytest.approx(20.0)
+    assert result.dimension == DIMENSIONLESS
+
+
+def test_nusselt_number_rejects_wrong_dimensions():
+    equation = NusseltNumberEquation()
+
+    velocity = PhysicalQuantity(
+        10.0,
+        0.0,
+        Unit("m/s", "m/s", LENGTH / TIME),
+    )
+
+    characteristic_length = PhysicalQuantity(
+        0.1,
+        0.0,
+        Unit("m", "m", LENGTH),
+    )
+
+    thermal_conductivity = PhysicalQuantity(
+        0.5,
+        0.0,
+        Unit(
+            "W/(m*K)",
+            "W/(m·K)",
+            MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        ),
+    )
+
+    with pytest.raises(DimensionalityError):
+        equation.calculate(
+            heat_transfer_coefficient=velocity,
+            characteristic_length=characteristic_length,
+            thermal_conductivity=thermal_conductivity,
         )
 
 

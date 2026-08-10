@@ -7,6 +7,7 @@ from lat_ces.scientific.dimensions.dimension import (
     Dimension,
     LENGTH,
     MASS,
+    TEMPERATURE,
     TIME,
 )
 from lat_ces.scientific.equations.engine import PhysicalDomainError, PhysicalEquation
@@ -21,6 +22,8 @@ VOLUMETRIC_FLOW = LENGTH**3 / TIME
 DENSITY = MASS / (LENGTH**3)
 MASS_FLOW = MASS / TIME
 DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
+THERMAL_CONDUCTIVITY = MASS / (TIME**3 * TEMPERATURE)
+HEAT_TRANSFER_COEFFICIENT = MASS / (TIME**3 * TEMPERATURE)
 PRESSURE = MASS / (LENGTH * (TIME**2))
 
 
@@ -350,6 +353,49 @@ class PrandtlNumberEquation(PhysicalEquation):
 
     def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
         return kwargs["kinematic_viscosity"] / kwargs["thermal_diffusivity"]
+
+
+class NusseltNumberEquation(PhysicalEquation):
+    """Calculate the Nusselt number.
+
+    Nu = h * L / k
+
+    where:
+        h = convective heat-transfer coefficient
+        L = characteristic length
+        k = thermal conductivity
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Nusselt number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "heat_transfer_coefficient": HEAT_TRANSFER_COEFFICIENT,
+            "characteristic_length": LENGTH,
+            "thermal_conductivity": MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["heat_transfer_coefficient"].value < 0.0:
+            raise PhysicalDomainError("Koeficijent prenosa toplote ne može biti negativan.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["thermal_conductivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplotna provodljivost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["heat_transfer_coefficient"]
+            * kwargs["characteristic_length"]
+            / kwargs["thermal_conductivity"]
+        )
 
 
 __all__ = [

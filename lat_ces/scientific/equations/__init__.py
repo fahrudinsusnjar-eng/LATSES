@@ -7,6 +7,7 @@ from lat_ces.scientific.equations.fluids import (
     ContinuityEquation,
     MachNumberEquation,
     MassFlowEquation,
+    NusseltNumberEquation,
     PlenumPressureDropEquation,
     PrandtlNumberEquation,
     ReynoldsNumberEquation,
@@ -25,4 +26,5 @@ __all__ = [
     "ReynoldsNumberEquation",
     "MachNumberEquation",
     "PrandtlNumberEquation",
+    "NusseltNumberEquation",
 ]
