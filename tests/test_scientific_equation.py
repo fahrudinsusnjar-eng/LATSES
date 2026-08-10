@@ -6,7 +6,7 @@ from lat_ces.scientific.equation import (
     PhysicalDomainError,
     PhysicalEquation,
 )
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 

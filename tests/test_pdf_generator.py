@@ -8,7 +8,7 @@ reportlab = pytest.importorskip("reportlab")
 from lat_ces.scientific.analysis.plenum import PlenumAnalysisEngine
 from lat_ces.scientific.devices.device import create_pitot_tube
 from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.reports.exporter import SKOReportExporter
 from lat_ces.scientific.reports.pdf_generator import SKOPDFGenerator
 from lat_ces.scientific.units.units import Unit

@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from lat_ces.scientific.analysis.plenum import SafetyReport, SafetyStatus
 from lat_ces.scientific.devices.device import MeasurementDevice
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 
 
 class SKOReportExporter:

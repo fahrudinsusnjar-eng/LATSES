@@ -22,3 +22,26 @@ def test_sko_hash_is_deterministic():
     second_hash = sko.compute_hash()
 
     assert first_hash == second_hash
+
+
+def test_sko_initialization():
+    sko = ScientificKnowledgeObject(
+        name="Test Object",
+        object_type="Generic",
+        definition="Test definition",
+        assumptions=["Ideal conditions"],
+        limitations=["None"],
+    )
+    assert sko.uuid is not None
+    assert sko.status == "Draft"
+
+
+def test_sko_status_transition():
+    sko = ScientificKnowledgeObject(
+        name="Test Object",
+        object_type="Generic",
+        definition="Test definition",
+    )
+    sko.approve(approved_by="Lead Architect")
+    assert sko.status == "Approved"
+    assert sko.approved_by == "Lead Architect"

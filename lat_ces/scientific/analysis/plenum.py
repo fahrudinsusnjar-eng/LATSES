@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from lat_ces.scientific.equations.engine import DimensionalityError
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 
 
 class SafetyStatus(Enum):

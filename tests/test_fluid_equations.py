@@ -5,7 +5,7 @@ import pytest
 from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS, TIME
 from lat_ces.scientific.equations.engine import DimensionalityError, PhysicalDomainError
 from lat_ces.scientific.equations.fluids import ContinuityEquation, PlenumPressureDropEquation
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 

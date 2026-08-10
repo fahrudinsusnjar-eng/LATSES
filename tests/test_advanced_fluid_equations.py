@@ -7,7 +7,7 @@ from lat_ces.scientific.equations.fluids import (
     VOLUMETRIC_FLOW,
     VenturiFlowEquation,
 )
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 
