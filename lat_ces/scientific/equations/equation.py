@@ -65,5 +65,9 @@ class PhysicalEquation(ABC):
         self.validate_inputs(kwargs)
         return self._compute(kwargs)
 
+    def evaluate(self, **kwargs: PhysicalQuantity) -> PhysicalQuantity:
+        """Backward-compatible alias for calculate()."""
+        return self.calculate(**kwargs)
+
 
 __all__ = ["DimensionalityError", "PhysicalDomainError", "PhysicalEquation"]
