@@ -4,7 +4,7 @@ Physical Constants Registry Reference Implementation Rev A
 Princip: Constants as typed PhysicalQuantities with SKO traceability
 """
 
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.derived_units import ENERGY_DIM, VELOCITY_DIM
 from lat_ces.scientific.units.dimension import LENGTH, MASS, TIME
 from lat_ces.scientific.units.unit import Unit

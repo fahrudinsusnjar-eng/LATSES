@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from lat_ces.scientific.analysis.plenum import PlenumAnalysisEngine
 from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS, TIME
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.reports.exporter import SKOReportExporter
 from lat_ces.scientific.reports.pdf_generator import SKOPDFGenerator
 from lat_ces.scientific.units.units import Unit

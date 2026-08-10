@@ -4,7 +4,7 @@ from lat_ces.scientific.analysis import SKOReportExporter
 from lat_ces.scientific.analysis.plenum import SafetyReport, SafetyStatus
 from lat_ces.scientific.devices.device import create_pitot_tube
 from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 

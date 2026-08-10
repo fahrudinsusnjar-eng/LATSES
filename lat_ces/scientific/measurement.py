@@ -4,7 +4,7 @@ import math
 import uuid
 from typing import Optional, Union
 
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 
