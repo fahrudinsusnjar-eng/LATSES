@@ -22,7 +22,7 @@ VOLUMETRIC_FLOW = LENGTH**3 / TIME
 DENSITY = MASS / (LENGTH**3)
 MASS_FLOW = MASS / TIME
 DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
-THERMAL_CONDUCTIVITY = MASS / (TIME**3 * TEMPERATURE)
+THERMAL_CONDUCTIVITY = MASS * LENGTH / (TIME**3 * TEMPERATURE)
 HEAT_TRANSFER_COEFFICIENT = MASS / (TIME**3 * TEMPERATURE)
 PRESSURE = MASS / (LENGTH * (TIME**2))
 
@@ -503,5 +503,7 @@ __all__ = [
     "ReynoldsNumberEquation",
     "MachNumberEquation",
     "PrandtlNumberEquation",
+    "NusseltNumberEquation",
+    "BiotNumberEquation",
     "FourierNumberEquation",
 ]

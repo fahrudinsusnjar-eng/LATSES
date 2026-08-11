@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Mapping
 
 from .reason_codes import ApplicabilityReason
-from .registry import ModelRegistry
+from .registry import ModelRegistry, ModelStatus
 
 
 class ApplicabilityStatus(str, Enum):
@@ -17,6 +17,7 @@ class ApplicabilityStatus(str, Enum):
     MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
     MODEL_SUPERSEDED = "MODEL_SUPERSEDED"
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    CONTRACT_INVALID = "CONTRACT_INVALID"
 
 
 @dataclass(frozen=True)
@@ -53,8 +54,9 @@ class ApplicabilityResult:
 class ApplicabilityEvaluator:
     """Evaluate whether a registered scientific model may be applied.
 
-    This layer does not execute scientific equations.
-    It only evaluates applicability and reports the reason.
+    This layer is a gate only. It does not execute scientific equations,
+    select itself as an authority, mutate registry state, or replace the
+    human decision boundary.
     """
 
     def __init__(self, registry: ModelRegistry) -> None:
@@ -69,6 +71,7 @@ class ApplicabilityEvaluator:
         if not request.model_id.strip():
             return self._result(
                 request,
+                None,
                 ApplicabilityStatus.MODEL_UNAVAILABLE,
                 ApplicabilityReason.MODEL_NOT_REGISTERED,
                 "No model identifier was supplied.",
@@ -77,6 +80,7 @@ class ApplicabilityEvaluator:
         if not self.registry.has(request.model_id):
             return self._result(
                 request,
+                None,
                 ApplicabilityStatus.MODEL_UNAVAILABLE,
                 ApplicabilityReason.MODEL_NOT_REGISTERED,
                 f"Model '{request.model_id}' is not registered.",
@@ -88,6 +92,7 @@ class ApplicabilityEvaluator:
             if request.model_version != entry.version:
                 return self._result(
                     request,
+                    entry.version,
                     ApplicabilityStatus.MODEL_UNAVAILABLE,
                     ApplicabilityReason.MODEL_VERSION_UNAVAILABLE,
                     (
@@ -97,17 +102,71 @@ class ApplicabilityEvaluator:
                     ),
                 )
 
-        if entry.status.value == "DEPRECATED":
-            return self._result(
-                request,
+        # Lifecycle is an operational gate. It does not assert scientific
+        # truth or falsity.
+        lifecycle = {
+            ModelStatus.INACTIVE: (
+                ApplicabilityStatus.NOT_APPLICABLE,
+                ApplicabilityReason.MODEL_INACTIVE,
+                f"Model '{request.model_id}' is inactive.",
+            ),
+            ModelStatus.BENCHED: (
+                ApplicabilityStatus.NOT_APPLICABLE,
+                ApplicabilityReason.MODEL_BENCHED,
+                f"Model '{request.model_id}' is on the operational bench.",
+            ),
+            ModelStatus.RETIRED: (
+                ApplicabilityStatus.NOT_APPLICABLE,
+                ApplicabilityReason.MODEL_RETIRED,
+                f"Model '{request.model_id}' is retired.",
+            ),
+            ModelStatus.INVALID: (
+                ApplicabilityStatus.NOT_APPLICABLE,
+                ApplicabilityReason.MODEL_INVALID,
+                f"Model '{request.model_id}' is invalid.",
+            ),
+            ModelStatus.DEPRECATED: (
+                 ApplicabilityStatus.MODEL_SUPERSEDED,
+                 ApplicabilityReason.MODEL_SUPERSEDED,
+                  f"Model '{request.model_id}' is deprecated.",
+            ),
+            ModelStatus.SUPERSEDED: (
                 ApplicabilityStatus.MODEL_SUPERSEDED,
                 ApplicabilityReason.MODEL_SUPERSEDED,
-                f"Model '{request.model_id}' is deprecated.",
+                f"Model '{request.model_id}' has been superseded.",
+            ),
+        }
+
+        if entry.status in lifecycle:
+            status, reason, rationale = lifecycle[entry.status]
+            return self._result(
+                request,
+                entry.version,
+                status,
+                reason,
+                rationale,
+            )
+
+        # Contract validity is an explicit gate before applicability.
+        contract_issues = entry.contract.validate()
+        if contract_issues:
+            violations = tuple(
+                f"{issue.code}: {issue.message}"
+                for issue in contract_issues
+            )
+            return self._result(
+                request,
+                entry.version,
+                ApplicabilityStatus.CONTRACT_INVALID,
+                ApplicabilityReason.CONTRACT_VIOLATION,
+                "Scientific model contract validation failed.",
+                violations=violations,
             )
 
         if request.context is None:
             return self._result(
                 request,
+                entry.version,
                 ApplicabilityStatus.INSUFFICIENT_EVIDENCE,
                 ApplicabilityReason.CONTEXT_MISSING,
                 "No context was supplied for applicability evaluation.",
@@ -116,6 +175,7 @@ class ApplicabilityEvaluator:
         if not request.context:
             return self._result(
                 request,
+                entry.version,
                 ApplicabilityStatus.INSUFFICIENT_EVIDENCE,
                 ApplicabilityReason.CONTEXT_INCOMPLETE,
                 "The supplied context is incomplete.",
@@ -133,14 +193,29 @@ class ApplicabilityEvaluator:
         if missing:
             return self._result(
                 request,
+                entry.version,
                 ApplicabilityStatus.INVALID_INPUT,
                 ApplicabilityReason.REQUIRED_INPUT_MISSING,
                 "Required model inputs are missing.",
                 violations=tuple(sorted(missing)),
             )
 
+        # Evidence is conditional: it becomes a gate when the model declares
+        # references/evidence requirements. This preserves the "where
+        # applicable" rule of the governing contract.
+        if entry.metadata.references:
+            if not request.evidence:
+                return self._result(
+                    request,
+                    entry.version,
+                    ApplicabilityStatus.INSUFFICIENT_EVIDENCE,
+                    ApplicabilityReason.INSUFFICIENT_EVIDENCE,
+                    "The model declares references requiring supporting evidence.",
+                )
+
         return self._result(
             request,
+            entry.version,
             ApplicabilityStatus.APPLICABLE,
             ApplicabilityReason.APPLICABLE_INPUTS_VALID,
             "Model applicability requirements are satisfied.",
@@ -150,6 +225,7 @@ class ApplicabilityEvaluator:
     @staticmethod
     def _result(
         request: ApplicabilityRequest,
+        model_version: str | None,
         status: ApplicabilityStatus,
         reason_code: ApplicabilityReason,
         rationale: str,
@@ -161,7 +237,7 @@ class ApplicabilityEvaluator:
             status=status,
             applicable=status is ApplicabilityStatus.APPLICABLE,
             model_id=request.model_id,
-            model_version=request.model_version,
+            model_version=model_version,
             reason_code=reason_code,
             rationale=rationale,
             violations=violations,
