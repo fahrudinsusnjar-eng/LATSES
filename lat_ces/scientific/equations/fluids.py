@@ -10,7 +10,7 @@ from lat_ces.scientific.dimensions.dimension import (
     TIME,
 )
 from lat_ces.scientific.equations.engine import PhysicalDomainError, PhysicalEquation
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 
@@ -19,6 +19,7 @@ VELOCITY = LENGTH / TIME
 ACCELERATION = LENGTH / (TIME**2)
 VOLUMETRIC_FLOW = LENGTH**3 / TIME
 DENSITY = MASS / (LENGTH**3)
+MASS_FLOW = MASS / TIME
 PRESSURE = MASS / (LENGTH * (TIME**2))
 
 
@@ -43,6 +44,9 @@ class ContinuityEquation(PhysicalEquation):
         return kwargs["area"] * kwargs["velocity"]
 
 
+VolumetricFlowEquation = ContinuityEquation
+
+
 class DynamicPressureEquation(PhysicalEquation):
     """Dynamic pressure equation, q = 0.5 * rho * v^2."""
 
@@ -64,9 +68,35 @@ class DynamicPressureEquation(PhysicalEquation):
         raw_pressure = kwargs["density"] * (kwargs["velocity"] ** 2)
         pascal = Unit("pascal", "Pa", PRESSURE)
         return PhysicalQuantity(
-            value=0.5 * raw_pressure.value,
-            uncertainty=0.5 * raw_pressure.uncertainty,
-            unit=pascal,
+            0.5 * raw_pressure.value,
+            0.5 * raw_pressure.uncertainty,
+            pascal,
+        )
+
+
+class MassFlowEquation(PhysicalEquation):
+    """Mass flow equation, m_dot = rho * Q."""
+
+    @property
+    def name(self) -> str:
+        return "Mass flow equation (m_dot = rho * Q)"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {"density": DENSITY, "volumetric_flow": VOLUMETRIC_FLOW}
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["density"].value <= 0.0:
+            raise PhysicalDomainError("Gustoća mora biti veća od nule.")
+        if kwargs["volumetric_flow"].value < 0.0:
+            raise PhysicalDomainError("Zapreminski protok ne može biti negativan.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        mass_flow = kwargs["density"] * kwargs["volumetric_flow"]
+        return PhysicalQuantity(
+            mass_flow.value,
+            mass_flow.uncertainty,
+            Unit("kilogram per second", "kg/s", MASS_FLOW),
         )
 
 
@@ -93,9 +123,9 @@ class PlenumPressureDropEquation(PhysicalEquation):
     def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
         pressure_drop = kwargs["resistance_coefficient"] * kwargs["dynamic_pressure"]
         return PhysicalQuantity(
-            value=pressure_drop.value,
-            uncertainty=pressure_drop.uncertainty,
-            unit=kwargs["dynamic_pressure"].unit,
+            pressure_drop.value,
+            pressure_drop.uncertainty,
+            kwargs["dynamic_pressure"].unit,
         )
 
 
@@ -171,9 +201,9 @@ class VenturiFlowEquation(PhysicalEquation):
         flow_uncertainty = abs(flow_value) * rel_flow
 
         return PhysicalQuantity(
-            value=flow_value,
-            uncertainty=flow_uncertainty,
-            unit=Unit("cubic meter per second", "m³/s", VOLUMETRIC_FLOW),
+            flow_value,
+            flow_uncertainty,
+            Unit("cubic meter per second", "m³/s", VOLUMETRIC_FLOW),
         )
 
 
@@ -216,12 +246,15 @@ __all__ = [
     "ACCELERATION",
     "AREA",
     "DENSITY",
+    "MASS_FLOW",
     "PRESSURE",
     "VELOCITY",
     "VOLUMETRIC_FLOW",
     "BernoulliTotalPressureEquation",
     "ContinuityEquation",
     "DynamicPressureEquation",
+    "MassFlowEquation",
     "PlenumPressureDropEquation",
+    "VolumetricFlowEquation",
     "VenturiFlowEquation",
 ]

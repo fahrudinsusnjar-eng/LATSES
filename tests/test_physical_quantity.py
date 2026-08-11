@@ -2,8 +2,17 @@ import math
 
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import LENGTH, MASS
+from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
 from lat_ces.scientific.quantities.quantity import PhysicalQuantity
+from lat_ces.scientific.units.derived_units import ENERGY_DIM, FORCE_DIM, PLANCK_CONSTANT, SPEED_OF_LIGHT
+from lat_ces.scientific.units.unit import (
+    CENTIMETER,
+    KILOGRAM,
+    METER,
+    METERS_PER_SECOND_SQUARED,
+    SECOND,
+    IncompatibleUnitsError,
+)
 from lat_ces.scientific.units.units import Unit, UnitSKOError
 
 
@@ -26,7 +35,7 @@ def test_physical_quantity_dimension_mismatch_raises():
     q1 = PhysicalQuantity(1.0, 0.1, meter)
     q2 = PhysicalQuantity(1.0, 0.1, kilogram)
 
-    with pytest.raises(UnitSKOError):
+    with pytest.raises(IncompatibleUnitsError):
         _ = q1 + q2
 
 
@@ -71,3 +80,74 @@ def test_physical_quantity_division_by_zero_raises():
         _ = quantity / 0
     with pytest.raises(ZeroDivisionError):
         _ = 1 / zero
+
+
+def test_quantity_creation():
+    q = PhysicalQuantity(10.0, METER)
+    assert q.value == 10.0
+    assert q.unit == METER
+    assert q.dimension == LENGTH
+
+
+def test_quantity_addition_compatible():
+    q1 = PhysicalQuantity(1.0, METER)
+    q2 = PhysicalQuantity(50.0, CENTIMETER)
+    result = q1 + q2
+    assert result.unit == METER
+    assert result.value == 1.5
+
+
+def test_quantity_addition_incompatible():
+    q1 = PhysicalQuantity(1.0, METER)
+    q2 = PhysicalQuantity(1.0, SECOND)
+    with pytest.raises(IncompatibleUnitsError):
+        _ = q1 + q2
+
+
+def test_quantity_scalar_multiplication():
+    q = PhysicalQuantity(2.0, METER)
+    result = q * 3.0
+    assert result.value == 6.0
+    assert result.unit == METER
+
+
+def test_velocity_calculation():
+    distance = PhysicalQuantity(100.0, METER)
+    time = PhysicalQuantity(10.0, SECOND)
+    velocity = distance / time
+    assert velocity.value == 10.0
+    assert velocity.dimension.is_compatible(LENGTH / TIME)
+
+
+def test_force_calculation():
+    mass = PhysicalQuantity(10.0, KILOGRAM)
+    accel = PhysicalQuantity(9.81, METERS_PER_SECOND_SQUARED)
+    force = mass * accel
+    assert force.value == pytest.approx(98.1)
+    assert force.unit.symbol == "N"
+
+
+def test_quantity_multiplication_area():
+    q1 = PhysicalQuantity(5.0, METER)
+    q2 = PhysicalQuantity(2.0, METER)
+    area = q1 * q2
+    assert area.value == 10.0
+    assert area.dimension.exponents["length"] == 2
+
+
+def test_quantity_multiplication_force():
+    mass = PhysicalQuantity(2.0, KILOGRAM)
+    accel = PhysicalQuantity(5.0, METERS_PER_SECOND_SQUARED)
+    force = mass * accel
+    assert force.value == 10.0
+    assert force.dimension.is_compatible(FORCE_DIM)
+
+
+def test_speed_of_light():
+    assert SPEED_OF_LIGHT.value == 299792458.0
+    assert SPEED_OF_LIGHT.dimension.is_compatible(LENGTH / TIME)
+
+
+def test_planck_constant():
+    assert PLANCK_CONSTANT.value == 6.62607015e-34
+    assert PLANCK_CONSTANT.dimension.is_compatible(ENERGY_DIM * TIME)

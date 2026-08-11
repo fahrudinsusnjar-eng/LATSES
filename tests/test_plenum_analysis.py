@@ -3,7 +3,7 @@ import pytest
 from lat_ces.scientific.analysis.plenum import PlenumAnalysisEngine, SafetyStatus
 from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
 from lat_ces.scientific.equations.engine import DimensionalityError
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 

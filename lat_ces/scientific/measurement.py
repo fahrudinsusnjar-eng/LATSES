@@ -1,10 +1,64 @@
 from __future__ import annotations
 
+import math
 import uuid
-from typing import Optional
+from typing import Optional, Union
 
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
+
+
+class Measurement(PhysicalQuantity):
+    """Physical quantity with explicit uncertainty-aware arithmetic."""
+
+    def __init__(self, value: float, unit: Unit, uncertainty: float = 0.0, sko_uuid: Optional[str] = None):
+        super().__init__(value=value, unit_or_uncertainty=uncertainty, maybe_unit=unit)
+        self._uuid = sko_uuid or str(uuid.uuid4())
+
+    @property
+    def relative_uncertainty(self) -> float:
+        if self.value == 0.0:
+            return 0.0 if self.uncertainty == 0.0 else float("inf")
+        return abs(self.uncertainty / self.value)
+
+    def _coerce_measurement_operand(self, other: object) -> Optional["Measurement"]:
+        if not isinstance(other, PhysicalQuantity):
+            return None
+
+        if isinstance(other, Measurement):
+            return other
+
+        return Measurement(
+            value=other.value,
+            unit=other.unit,
+            uncertainty=float(getattr(other, "uncertainty", 0.0)),
+        )
+
+    def __add__(self, other: object) -> "Measurement":
+        other_measurement = self._coerce_measurement_operand(other)
+        if other_measurement is None:
+            return NotImplemented
+
+        result = super().__add__(other_measurement)
+        return Measurement(result.value, result.unit, result.uncertainty)
+
+    def __sub__(self, other: object) -> "Measurement":
+        other_measurement = self._coerce_measurement_operand(other)
+        if other_measurement is None:
+            return NotImplemented
+
+        result = super().__sub__(other_measurement)
+        return Measurement(result.value, result.unit, result.uncertainty)
+
+    def __mul__(self, other: Union[int, float, PhysicalQuantity]) -> "Measurement":
+        if not isinstance(other, (int, float, PhysicalQuantity)):
+            return NotImplemented
+
+        result = super().__mul__(other)
+        return Measurement(result.value, result.unit, result.uncertainty)
+
+    def __repr__(self) -> str:
+        return f"({self.value} +/- {self.uncertainty}) {self.unit.symbol}"
 
 
 class OutOfRangeError(Exception):
@@ -62,10 +116,10 @@ class MeasurementDevice:
         corrected_value = raw_value - self.calibration_offset
         uncertainty = self.accuracy_spec.calculate_uncertainty(corrected_value)
 
-        return PhysicalQuantity(
+        return Measurement(
             value=corrected_value,
-            uncertainty=uncertainty,
             unit=self.unit,
+            uncertainty=uncertainty,
             sko_uuid=self.uuid,
         )
 

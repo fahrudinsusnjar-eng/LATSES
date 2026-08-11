@@ -4,8 +4,13 @@ import pytest
 
 from lat_ces.scientific.dimensions.dimension import DIMENSIONLESS, LENGTH, MASS, TIME
 from lat_ces.scientific.equations.engine import DimensionalityError, PhysicalDomainError
-from lat_ces.scientific.equations.fluids import ContinuityEquation, PlenumPressureDropEquation
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.equations.fluids import (
+    ContinuityEquation,
+    MassFlowEquation,
+    PlenumPressureDropEquation,
+    VolumetricFlowEquation,
+)
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 from lat_ces.scientific.units.units import Unit
 
 
@@ -21,6 +26,32 @@ def test_continuity_equation_with_uncertainty():
     assert flow.unit.symbol == "m²·m/s"
     expected_relative_uncertainty = math.sqrt((0.1 / 2.0) ** 2 + (0.2 / 10.0) ** 2)
     assert flow.relative_uncertainty == pytest.approx(expected_relative_uncertainty)
+
+
+def test_volumetric_flow_equation_evaluate_alias():
+    m2 = Unit("square meter", "m²", LENGTH**2)
+    m_s = Unit("meter per second", "m/s", LENGTH / TIME)
+    area = PhysicalQuantity(2.0, 0.1, m2)
+    velocity = PhysicalQuantity(10.0, 0.2, m_s)
+
+    result = VolumetricFlowEquation().evaluate(area=area, velocity=velocity)
+
+    assert result.value == pytest.approx(20.0)
+    assert result.unit.symbol == "m²·m/s"
+
+
+def test_mass_flow_equation_evaluate_alias():
+    rho_u = Unit("kilogram per cubic meter", "kg/m3", MASS / (LENGTH**3))
+    q_u = Unit("cubic meter per second", "m3/s", LENGTH**3 / TIME)
+    density = PhysicalQuantity(1.2, 0.012, rho_u)
+    flow = PhysicalQuantity(2.0, 0.05, q_u)
+
+    result = MassFlowEquation().evaluate(density=density, volumetric_flow=flow)
+
+    assert result.value == pytest.approx(2.4)
+    assert result.unit.symbol == "kg/s"
+    expected_relative_uncertainty = math.sqrt((0.012 / 1.2) ** 2 + (0.05 / 2.0) ** 2)
+    assert result.relative_uncertainty == pytest.approx(expected_relative_uncertainty)
 
 
 def test_continuity_equation_rejects_wrong_area_dimension():

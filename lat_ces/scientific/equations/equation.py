@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from lat_ces.scientific.dimensions.dimension import Dimension
-from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.quantities.quantity import PhysicalQuantity
 
 
 class DimensionalityError(Exception):
@@ -64,6 +64,10 @@ class PhysicalEquation(ABC):
         """Validate inputs and calculate the equation result."""
         self.validate_inputs(kwargs)
         return self._compute(kwargs)
+
+    def evaluate(self, **kwargs: PhysicalQuantity) -> PhysicalQuantity:
+        """Backward-compatible alias for calculate()."""
+        return self.calculate(**kwargs)
 
 
 __all__ = ["DimensionalityError", "PhysicalDomainError", "PhysicalEquation"]
