@@ -146,3 +146,43 @@ def test_remove_missing_model_is_rejected():
 
     with pytest.raises(KeyError, match="not registered"):
         registry.remove("missing_model")
+
+
+def test_metadata_model_id_must_match_registry_identity():
+    registry = ModelRegistry()
+
+    metadata = ScientificModelMetadata(
+        model_id="metadata_model",
+        name="Test Model",
+        domain="Testing",
+        description="Registry identity test.",
+        equation="y = x",
+        inputs=(
+            ModelInput(
+                name="x",
+                description="Input value.",
+                dimension=LENGTH,
+            ),
+        ),
+        outputs=(
+            ModelOutput(
+                name="y",
+                description="Output value.",
+                dimension=DIMENSIONLESS,
+            ),
+        ),
+    )
+
+    entry = ModelRegistryEntry(
+        model_id="registry_model",
+        version="1.0",
+        status=ModelStatus.ACTIVE,
+        metadata=metadata,
+        contract=ScientificModelContract(metadata),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Registry model_id must match metadata.model_id",
+    ):
+        registry.register(entry)
