@@ -158,3 +158,18 @@ def test_wrong_version_is_rejected() -> None:
 
     assert result.status is ApplicabilityStatus.MODEL_UNAVAILABLE
     assert result.reason_code is ApplicabilityReason.MODEL_VERSION_UNAVAILABLE
+def test_missing_required_input_is_rejected() -> None:
+    evaluator = ApplicabilityEvaluator(make_registry())
+
+    result = evaluator.evaluate(
+        ApplicabilityRequest(
+            model_id="TEST-001",
+            context={"entity": "test"},
+            inputs={},
+        )
+    )
+
+    assert result.status is ApplicabilityStatus.INVALID_INPUT
+    assert result.applicable is False
+    assert result.reason_code is ApplicabilityReason.REQUIRED_INPUT_MISSING
+    assert result.violations == ("x",)
