@@ -7,6 +7,7 @@ from lat_ces.scientific.dimensions.dimension import (
     Dimension,
     LENGTH,
     MASS,
+    TEMPERATURE,
     TIME,
 )
 from lat_ces.scientific.equations.engine import PhysicalDomainError, PhysicalEquation
@@ -20,6 +21,9 @@ ACCELERATION = LENGTH / (TIME**2)
 VOLUMETRIC_FLOW = LENGTH**3 / TIME
 DENSITY = MASS / (LENGTH**3)
 MASS_FLOW = MASS / TIME
+DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
+THERMAL_CONDUCTIVITY = MASS * LENGTH / (TIME**3 * TEMPERATURE)
+HEAT_TRANSFER_COEFFICIENT = MASS / (TIME**3 * TEMPERATURE)
 PRESSURE = MASS / (LENGTH * (TIME**2))
 
 
@@ -242,10 +246,249 @@ class BernoulliTotalPressureEquation(PhysicalEquation):
         return static_pressure + dynamic_pressure + hydrostatic_pressure
 
 
+class ReynoldsNumberEquation(PhysicalEquation):
+    """Reynolds number, Re = rho * v * D / mu."""
+
+    @property
+    def name(self) -> str:
+        return "Reynoldsov broj (Re = rho * v * D / mu)"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "density": DENSITY,
+            "velocity": VELOCITY,
+            "characteristic_length": LENGTH,
+            "dynamic_viscosity": DYNAMIC_VISCOSITY,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["density"].value <= 0.0:
+            raise PhysicalDomainError("Gustoća fluida mora biti veća od nule.")
+
+        if kwargs["velocity"].value < 0.0:
+            raise PhysicalDomainError("Brzina ne može biti negativna.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["dynamic_viscosity"].value <= 0.0:
+            raise PhysicalDomainError("Dinamička viskoznost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        reynolds = (
+            kwargs["density"]
+            * kwargs["velocity"]
+            * kwargs["characteristic_length"]
+            / kwargs["dynamic_viscosity"]
+        )
+
+        return PhysicalQuantity(
+            reynolds.value,
+            reynolds.uncertainty,
+            Unit("dimensionless", "-", DIMENSIONLESS),
+        )
+
+
+class MachNumberEquation(PhysicalEquation):
+    """Mach number, Ma = velocity / speed_of_sound."""
+
+    @property
+    def name(self) -> str:
+        return "Machov broj (Ma = v / a)"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "velocity": VELOCITY,
+            "speed_of_sound": VELOCITY,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["velocity"].value < 0.0:
+            raise PhysicalDomainError("Brzina fluida ne može biti negativna.")
+
+        if kwargs["speed_of_sound"].value <= 0.0:
+            raise PhysicalDomainError("Brzina zvuka mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        mach = kwargs["velocity"] / kwargs["speed_of_sound"]
+
+        return PhysicalQuantity(
+            mach.value,
+            mach.uncertainty,
+            Unit("dimensionless", "-", DIMENSIONLESS),
+        )
+
+
+class PrandtlNumberEquation(PhysicalEquation):
+    """Calculate the Prandtl number.
+
+    Pr = nu / alpha
+
+    where:
+        nu    = kinematic viscosity [m²/s]
+        alpha = thermal diffusivity [m²/s]
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Prandtl number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "kinematic_viscosity": LENGTH**2 / TIME,
+            "thermal_diffusivity": LENGTH**2 / TIME,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["kinematic_viscosity"].value < 0.0:
+            raise PhysicalDomainError("Kinematička viskoznost ne može biti negativna.")
+
+        if kwargs["thermal_diffusivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplinski difuzivitet mora biti veći od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return kwargs["kinematic_viscosity"] / kwargs["thermal_diffusivity"]
+
+
+class NusseltNumberEquation(PhysicalEquation):
+    """Calculate the Nusselt number.
+
+    Nu = h * L / k
+
+    where:
+        h = convective heat-transfer coefficient
+        L = characteristic length
+        k = thermal conductivity
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Nusselt number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "heat_transfer_coefficient": HEAT_TRANSFER_COEFFICIENT,
+            "characteristic_length": LENGTH,
+            "thermal_conductivity": MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["heat_transfer_coefficient"].value < 0.0:
+            raise PhysicalDomainError("Koeficijent prenosa toplote ne može biti negativan.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["thermal_conductivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplotna provodljivost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["heat_transfer_coefficient"]
+            * kwargs["characteristic_length"]
+            / kwargs["thermal_conductivity"]
+        )
+
+
+class BiotNumberEquation(PhysicalEquation):
+    """Calculate the Biot number.
+
+    Bi = h * Lc / k
+
+    where:
+        h  = convective heat-transfer coefficient
+        Lc = characteristic length
+        k  = thermal conductivity
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Biot number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "heat_transfer_coefficient": HEAT_TRANSFER_COEFFICIENT,
+            "characteristic_length": LENGTH,
+            "thermal_conductivity": MASS * LENGTH / (TIME**3 * TEMPERATURE),
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["heat_transfer_coefficient"].value < 0.0:
+            raise PhysicalDomainError("Koeficijent prenosa toplote ne može biti negativan.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+        if kwargs["thermal_conductivity"].value <= 0.0:
+            raise PhysicalDomainError("Toplotna provodljivost mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["heat_transfer_coefficient"]
+            * kwargs["characteristic_length"]
+            / kwargs["thermal_conductivity"]
+        )
+
+
+class FourierNumberEquation(PhysicalEquation):
+    """Calculate the Fourier number.
+
+    Fo = alpha * t / Lc²
+
+    where:
+        alpha = thermal diffusivity
+        t     = characteristic time
+        Lc    = characteristic length
+
+    The result is dimensionless.
+    """
+
+    @property
+    def name(self) -> str:
+        return "Fourier number"
+
+    @property
+    def expected_dimensions(self) -> Dict[str, Dimension]:
+        return {
+            "thermal_diffusivity": LENGTH**2 / TIME,
+            "time": TIME,
+            "characteristic_length": LENGTH,
+        }
+
+    def _check_physical_domain(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        if kwargs["thermal_diffusivity"].value < 0.0:
+            raise PhysicalDomainError("Toplotni difuzivitet ne može biti negativan.")
+
+        if kwargs["time"].value < 0.0:
+            raise PhysicalDomainError("Vreme ne može biti negativno.")
+
+        if kwargs["characteristic_length"].value <= 0.0:
+            raise PhysicalDomainError("Karakteristična dužina mora biti veća od nule.")
+
+    def _compute(self, kwargs: Dict[str, PhysicalQuantity]) -> PhysicalQuantity:
+        return (
+            kwargs["thermal_diffusivity"]
+            * kwargs["time"]
+            / (kwargs["characteristic_length"] ** 2)
+        )
+
+
 __all__ = [
     "ACCELERATION",
     "AREA",
     "DENSITY",
+    "DYNAMIC_VISCOSITY",
     "MASS_FLOW",
     "PRESSURE",
     "VELOCITY",
@@ -257,4 +500,10 @@ __all__ = [
     "PlenumPressureDropEquation",
     "VolumetricFlowEquation",
     "VenturiFlowEquation",
+    "ReynoldsNumberEquation",
+    "MachNumberEquation",
+    "PrandtlNumberEquation",
+    "NusseltNumberEquation",
+    "BiotNumberEquation",
+    "FourierNumberEquation",
 ]

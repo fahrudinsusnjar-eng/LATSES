@@ -3,12 +3,18 @@ from lat_ces.scientific.equations.engine import (
     PhysicalDomainError,
     PhysicalEquation,
 )
-from lat_ces.scientific.equations.fluids import (
+from .fluids import (
+    BernoulliTotalPressureEquation,
+    BiotNumberEquation,
     ContinuityEquation,
     DynamicPressureEquation,
+    FourierNumberEquation,
+    MachNumberEquation,
+    NusseltNumberEquation,
     PlenumPressureDropEquation,
+    PrandtlNumberEquation,
+    ReynoldsNumberEquation,
     VenturiFlowEquation,
-    BernoulliTotalPressureEquation,
 )
 
 __all__ = [
@@ -20,4 +26,10 @@ __all__ = [
     "PlenumPressureDropEquation",
     "VenturiFlowEquation",
     "BernoulliTotalPressureEquation",
+    "ReynoldsNumberEquation",
+    "MachNumberEquation",
+    "PrandtlNumberEquation",
+    "NusseltNumberEquation",
+    "BiotNumberEquation",
+    "FourierNumberEquation",
 ]
