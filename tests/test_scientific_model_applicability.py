@@ -173,3 +173,54 @@ def test_missing_required_input_is_rejected() -> None:
     assert result.applicable is False
     assert result.reason_code is ApplicabilityReason.REQUIRED_INPUT_MISSING
     assert result.violations == ("x",)
+
+
+def test_invalid_contract_blocks_applicability() -> None:
+    registry = make_registry()
+    entry = registry.get("TEST-001")
+
+    invalid_metadata = ScientificModelMetadata(
+        model_id=entry.metadata.model_id,
+        name=entry.metadata.name,
+        domain=entry.metadata.domain,
+        description=entry.metadata.description,
+        equation=entry.metadata.equation,
+        inputs=(
+            entry.metadata.inputs[0],
+            ModelInput(
+                name="x",
+                description="Duplicate input.",
+                dimension=DIMENSIONLESS,
+                required=True,
+            ),
+        ),
+        outputs=entry.metadata.outputs,
+    )
+
+    invalid_entry = ModelRegistryEntry(
+        model_id=entry.model_id,
+        version=entry.version,
+        status=ModelStatus.ACTIVE,
+        metadata=invalid_metadata,
+        contract=ScientificModelContract(invalid_metadata),
+    )
+
+    registry.remove("TEST-001")
+    registry.register(invalid_entry)
+
+    evaluator = ApplicabilityEvaluator(registry)
+
+    result = evaluator.evaluate(
+        ApplicabilityRequest(
+            model_id="TEST-001",
+            context={"entity": "test"},
+            inputs={"x": 1},
+        )
+    )
+
+    assert result.status is ApplicabilityStatus.CONTRACT_INVALID
+    assert result.applicable is False
+    assert result.reason_code is ApplicabilityReason.CONTRACT_VIOLATION
+    assert result.violations == (
+        "DUPLICATE_INPUT: Duplicate input name: 'x'.",
+    )
