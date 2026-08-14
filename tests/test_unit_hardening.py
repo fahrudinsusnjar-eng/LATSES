@@ -2,8 +2,7 @@ import math
 
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
-from lat_ces.scientific.units.units import Unit, UnitSKOError
+from lat_ces.core.dimensions import LENGTH, MASS, TIME, Unit, UnitSKOError
 
 
 def test_hardening_fractional_exponents():
