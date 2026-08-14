@@ -1,0 +1,3 @@
+LATSES GitHub connector READ-WRITE-READBACK test.
+Created by ChatGPT connector on 2026-08-14 after connector update.
+Harmless temporary verification file.
