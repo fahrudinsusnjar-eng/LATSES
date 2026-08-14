@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Any, Dict
 
 from lat_ces.scientific.dimensions.dimension import Dimension
 from lat_ces.scientific.quantity import PhysicalQuantity
@@ -29,14 +29,27 @@ class PhysicalEquation(ABC):
         """Map each required argument name to its expected dimension."""
 
     def validate_inputs(self, kwargs: Dict[str, PhysicalQuantity]) -> None:
+        """Validate required inputs, types, dimensions, and domain constraints."""
         for param, expected_dimension in self.expected_dimensions.items():
             if param not in kwargs:
-                raise ValueError(f"Nedostaje obavezni parametar '{param}' za jednačinu '{self.name}'.")
+                raise ValueError(
+                    f"Nedostaje obavezni parametar '{param}' za jednačinu '{self.name}'."
+                )
+
             argument = kwargs[param]
             if not isinstance(argument, PhysicalQuantity):
-                raise TypeError(f"Parametar '{param}' mora biti instanca PhysicalQuantity, dobijeno: {type(argument)}.")
+                raise TypeError(
+                    f"Parametar '{param}' mora biti instanca PhysicalQuantity, "
+                    f"dobijeno: {type(argument)}."
+                )
+
             if argument.unit.dimension != expected_dimension:
-                raise DimensionalityError(f"Dimenzionalno neslaganje za '{param}' u jednačini '{self.name}'. Očekivano: {expected_dimension}, dobijeno: {argument.unit.dimension} ({argument.unit.symbol}).")
+                raise DimensionalityError(
+                    f"Dimenzionalno neslaganje za '{param}' u jednačini '{self.name}'. "
+                    f"Očekivano: {expected_dimension}, "
+                    f"dobijeno: {argument.unit.dimension} ({argument.unit.symbol})."
+                )
+
         self._check_physical_domain(kwargs)
 
     @abstractmethod
@@ -48,6 +61,7 @@ class PhysicalEquation(ABC):
         """Compute the equation using validated physical quantities."""
 
     def calculate(self, **kwargs: PhysicalQuantity) -> PhysicalQuantity:
+        """Validate inputs and calculate the equation result."""
         self.validate_inputs(kwargs)
         return self._compute(kwargs)
 
