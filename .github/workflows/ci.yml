@@ -3,7 +3,7 @@ name: LAT-CES Verification Pipeline
 on:
   workflow_dispatch:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'consolidation/**' ]
   pull_request:
     branches: [ main ]
 
