@@ -50,12 +50,13 @@ class PhysicalQuantity:
     def __init__(
         self,
         value: float,
-        uncertainty_or_unit: Union[float, Unit],
+        uncertainty_or_unit: Optional[Union[float, Unit]] = None,
         unit: Optional[Unit] = None,
         confidence_level: float = 0.95,
         sko_uuid: Optional[str] = None,
         status: str = "DRAFT",
         *,
+        uncertainty: Optional[float] = None,
         quantity_id: Optional[str] = None,
         name: Optional[str] = None,
         symbol: Optional[str] = None,
@@ -65,16 +66,25 @@ class PhysicalQuantity:
         measurement_model: Optional[MeasurementTrace] = None,
         evidence: Optional[EvidenceLink] = None,
     ):
-        # Legacy form: PhysicalQuantity(value, unit)
-        if unit is None:
-            if not isinstance(uncertainty_or_unit, Unit):
-                raise UnitSKOError("Skraćeni oblik zahtijeva PhysicalQuantity(value, unit).")
-            uncertainty = 0.0
+        # Compatibility forms:
+        #   PhysicalQuantity(value, unit)
+        #   PhysicalQuantity(value, uncertainty, unit)
+        #   PhysicalQuantity(value=value, uncertainty=..., unit=...)
+        if uncertainty is not None:
+            if uncertainty_or_unit is not None:
+                raise UnitSKOError("Ne može se istovremeno zadati uncertainty i drugi positional uncertainty argument.")
+            uncertainty_value = float(uncertainty)
+        elif isinstance(uncertainty_or_unit, Unit) and unit is None:
+            uncertainty_value = 0.0
             unit = uncertainty_or_unit
+        elif uncertainty_or_unit is not None:
+            uncertainty_value = float(uncertainty_or_unit)
         else:
-            uncertainty = float(uncertainty_or_unit)
+            raise UnitSKOError("PhysicalQuantity zahtijeva uncertainty ili Unit.")
 
-        if uncertainty < 0.0:
+        if unit is None:
+            raise UnitSKOError("Physical quantity mora biti vezana za validnu jedinicu.")
+        if uncertainty_value < 0.0:
             raise UnitSKOError("Mjerna neodređenost ne može biti negativna vrijednost.")
         if not isinstance(unit, Unit):
             raise UnitSKOError("Physical quantity mora biti vezana za validnu jedinicu.")
@@ -84,7 +94,7 @@ class PhysicalQuantity:
         equation_text = str(equation) if isinstance(equation, Equation) else (equation or "")
 
         self._value = float(value)
-        self._uncertainty = float(uncertainty)
+        self._uncertainty = uncertainty_value
         self._unit = unit
         self._confidence_level = confidence_level
         self._uuid = sko_uuid or str(uuid.uuid4())
