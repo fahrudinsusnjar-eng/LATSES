@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from lat_ces.scientific.dimensions.dimension import Dimension
+
 from .metadata import ModelInput, ModelOutput, ScientificModelMetadata
 
 
@@ -47,7 +49,7 @@ class ScientificModelContract:
     def validate_dimensions(self) -> tuple[ContractIssue, ...]:
         issues: list[ContractIssue] = []
         for item in (*self.metadata.inputs, *self.metadata.outputs):
-            if not hasattr(item.dimension, "is_compatible"):
+            if not isinstance(item.dimension, Dimension):
                 issues.append(ContractIssue("INVALID_DIMENSION", f"'{item.name}' does not contain a valid Dimension."))
         return tuple(issues)
 
