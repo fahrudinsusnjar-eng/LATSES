@@ -1,12 +1,14 @@
 """
 LAT-CES Scientific Core
 Unit Engine Verification Tests (LAT-SCI-CORE-0015)
+
+ADAPT-001: exercise the canonical Unit implementation from core.dimensions.
 """
 
 import pytest
 
-from lat_ces.scientific.units.dimension import LENGTH, MASS, TIME, VELOCITY, FORCE
-from lat_ces.scientific.units.unit import Unit, UnitError, SI_REGISTRY
+from lat_ces.core.dimensions import LENGTH, TIME, VELOCITY
+from lat_ces.core.dimensions import Unit, UnitSKOError
 
 
 def test_unit_creation_valid():
@@ -18,7 +20,7 @@ def test_unit_creation_valid():
 
 
 def test_unit_requires_dimension():
-    with pytest.raises(UnitError):
+    with pytest.raises(UnitSKOError):
         Unit(name="invalid", symbol="inv", dimension=None, scale_factor=1.0)
 
 
@@ -26,7 +28,6 @@ def test_unit_multiplication_derived_dimension():
     meter = Unit(name="meter", symbol="m", dimension=LENGTH, scale_factor=1.0)
     second = Unit(name="second", symbol="s", dimension=TIME, scale_factor=1.0)
 
-    # m / s -> velocity
     mps = meter / second
     assert mps.dimension == VELOCITY
     assert mps.symbol == "m/s"
