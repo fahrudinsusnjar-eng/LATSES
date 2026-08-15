@@ -1,8 +1,16 @@
 import pytest
 import math
-from lat_ces.core.dimensions import Dimension
+from lat_ces.core.dimensions import Dimension, AREA as CORE_AREA, FLOW_RATE as CORE_FLOW_RATE, DENSITY as CORE_DENSITY, MASS_FLOW as CORE_MASS_FLOW
 from lat_ces.modules.quantity import PhysicalQuantity
 from lat_ces.modules.plenum import PlenumEngine, AREA, FLOW_RATE, DENSITY, MASS_FLOW
+
+
+def test_plenum_dimensions_are_canonical_core_objects():
+    assert AREA is CORE_AREA
+    assert FLOW_RATE is CORE_FLOW_RATE
+    assert DENSITY is CORE_DENSITY
+    assert MASS_FLOW is CORE_MASS_FLOW
+
 
 def test_plenum_flow_calculation():
     engine = PlenumEngine()
@@ -18,6 +26,7 @@ def test_plenum_flow_calculation():
     assert q.value == 6.0
     assert q.dimension == FLOW_RATE
     assert q.uncertainty > 0
+
 
 def test_plenum_mass_flow_calculation():
     engine = PlenumEngine()

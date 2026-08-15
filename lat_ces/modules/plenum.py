@@ -2,15 +2,19 @@
 LAT-CES Module 012: Air Plenum & Fluid Dynamics Engine
 Dokument: LAT-SCI-MOD-0012
 """
-from lat_ces.core.dimensions import Dimension, LENGTH, TIME, VELOCITY, MASS
+from lat_ces.core.dimensions import (
+    Dimension,
+    LENGTH,
+    TIME,
+    VELOCITY,
+    MASS,
+    AREA,
+    FLOW_RATE,
+    DENSITY,
+    MASS_FLOW,
+)
 from lat_ces.modules.quantity import PhysicalQuantity
 from lat_ces.modules.equation import PhysicalEquation
-
-# Definisanje specifičnih dimenzija za mehaniku fluida
-AREA = Dimension(L=2)
-FLOW_RATE = Dimension(L=3, T=-1)  # m³/s
-DENSITY = Dimension(M=1, L=-3)    # kg/m³
-MASS_FLOW = Dimension(M=1, T=-1)   # kg/s
 
 class PlenumEngine:
     def __init__(self):

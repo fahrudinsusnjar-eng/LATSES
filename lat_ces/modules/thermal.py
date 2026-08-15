@@ -2,14 +2,9 @@
 LAT-CES Module 014: Thermal & Thermodynamic Engine
 Dokument: LAT-SCI-MOD-0014
 """
-from lat_ces.core.dimensions import Dimension, MASS, TIME
+from lat_ces.core.dimensions import TEMPERATURE, SPECIFIC_HEAT, HEAT_RATE
 from lat_ces.modules.quantity import PhysicalQuantity
 from lat_ces.modules.equation import PhysicalEquation
-
-# Definisanje specifičnih termodinamičkih dimenzija
-TEMPERATURE = Dimension(Theta=1)                                # Kelvin (K)
-SPECIFIC_HEAT = Dimension(L=2, T=-2, Theta=-1)                  # J / (kg * K) -> m² / (s² * K)
-HEAT_RATE = Dimension(M=1, L=2, T=-3)                           # Watt (W) -> kg * m² / s³
 
 class ThermalEngine:
     def __init__(self):

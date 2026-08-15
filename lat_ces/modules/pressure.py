@@ -2,13 +2,9 @@
 LAT-CES Module 015: Pressure Drop & Fan Power Engine
 Dokument: LAT-SCI-MOD-0015
 """
-from lat_ces.core.dimensions import Dimension
+from lat_ces.core.dimensions import Dimension, PRESSURE, POWER
 from lat_ces.modules.quantity import PhysicalQuantity
 from lat_ces.modules.equation import PhysicalEquation
-
-# Definisanje specifičnih dimenzija za pritisak i snagu
-PRESSURE = Dimension(M=1, L=-1, T=-2)   # Pascal (Pa) -> kg / (m * s²)
-POWER = Dimension(M=1, L=2, T=-3)      # Watt (W) -> kg * m² / s³
 
 class FanEngine:
     def __init__(self):
