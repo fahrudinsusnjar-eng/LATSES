@@ -7,6 +7,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, Union
 
+from lat_ces.core.dimensions import Dimension
+from lat_ces.scientific.units.registry import dimension_to_unit
 from lat_ces.scientific.units.units import Unit, UnitSKOError
 from .audit import AuditRecord
 from .equation import Equation
@@ -50,13 +52,14 @@ class PhysicalQuantity:
     def __init__(
         self,
         value: float,
-        uncertainty_or_unit: Optional[Union[float, Unit]] = None,
-        unit: Optional[Unit] = None,
+        uncertainty_or_unit: Optional[Union[float, Unit, Dimension]] = None,
+        unit: Optional[Union[Unit, float]] = None,
         confidence_level: float = 0.95,
         sko_uuid: Optional[str] = None,
         status: str = "DRAFT",
         *,
         uncertainty: Optional[float] = None,
+        dimension: Optional[Dimension] = None,
         quantity_id: Optional[str] = None,
         name: Optional[str] = None,
         symbol: Optional[str] = None,
@@ -66,11 +69,30 @@ class PhysicalQuantity:
         measurement_model: Optional[MeasurementTrace] = None,
         evidence: Optional[EvidenceLink] = None,
     ):
-        # Compatibility forms:
+        # Canonical forms:
         #   PhysicalQuantity(value, unit)
         #   PhysicalQuantity(value, uncertainty, unit)
         #   PhysicalQuantity(value=value, uncertainty=..., unit=...)
-        if uncertainty is not None:
+        # Compatibility forms retained for modules.quantity callers:
+        #   PhysicalQuantity(value, dimension, uncertainty)
+        #   PhysicalQuantity(value=value, dimension=..., uncertainty=...)
+        if dimension is not None:
+            if uncertainty_or_unit is not None or unit is not None:
+                raise UnitSKOError("Dimension se ne može kombinovati sa positional unit/uncertainty argumentima.")
+            unit = dimension_to_unit(dimension)
+            uncertainty_value = float(uncertainty or 0.0)
+        elif isinstance(uncertainty_or_unit, Dimension):
+            unit_dimension = uncertainty_or_unit
+            if isinstance(unit, Unit):
+                raise UnitSKOError("Legacy Dimension forma očekuje uncertainty kao treći positional argument.")
+            if uncertainty is not None:
+                if unit is not None:
+                    raise UnitSKOError("Uncertainty je zadan dvaput.")
+                uncertainty_value = float(uncertainty)
+            else:
+                uncertainty_value = float(unit or 0.0)
+            unit = dimension_to_unit(unit_dimension)
+        elif uncertainty is not None:
             if uncertainty_or_unit is not None:
                 raise UnitSKOError("Ne može se istovremeno zadati uncertainty i drugi positional uncertainty argument.")
             uncertainty_value = float(uncertainty)
