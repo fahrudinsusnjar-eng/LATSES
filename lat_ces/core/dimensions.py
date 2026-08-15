@@ -229,6 +229,15 @@ DENSITY = Dimension(M=1, L=-3)
 ACCELERATION = Dimension(L=1, T=-2)
 FORCE = Dimension(M=1, L=1, T=-2)
 
+# Canonical derived dimensions used by the scientific module layer.
+AREA = LENGTH**2
+FLOW_RATE = (LENGTH**3) / TIME
+MASS_FLOW = MASS / TIME
+PRESSURE = MASS / (LENGTH * (TIME**2))
+POWER = (MASS * (LENGTH**2)) / (TIME**3)
+SPECIFIC_HEAT = (LENGTH**2) / (TIME**2) / TEMPERATURE
+HEAT_RATE = POWER
+
 meter = Unit(name="meter", symbol="m", dimension=LENGTH, scale_factor=1.0, offset=0.0)
 centimeter = Unit(name="centimeter", symbol="cm", dimension=LENGTH, scale_factor=0.01, offset=0.0)
 celsius = Unit(name="celsius", symbol="°C", dimension=TEMPERATURE, scale_factor=1.0, offset=0.0)
