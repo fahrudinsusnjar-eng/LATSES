@@ -22,9 +22,10 @@ from lat_ces.core.dimensions import (
 )
 
 
-# Temperature intervals are not affine absolute temperatures.  They have the
-# same dimensional exponent but a zero offset so they can participate in unit
-# algebra (e.g. J/(kg*K) and m_dot*cp*delta_T).
+# Legacy module callers use TEMPERATURE for delta-T values.  Keep that bridge
+# mapping zero-offset so temperature differences can safely participate in unit
+# algebra. Canonical callers that need absolute temperature already provide an
+# explicit Unit (e.g. kelvin).
 kelvin_interval = Unit(
     name="kelvin interval",
     symbol="K",
@@ -40,7 +41,7 @@ _DERIVED_UNITS = {
     MASS: kilogram,
     TIME: second,
     CURRENT: ampere,
-    TEMPERATURE: kelvin,
+    TEMPERATURE: kelvin_interval,
     AMOUNT: mole,
     LUMINOUS_INTENSITY: candela,
     LENGTH / TIME: meter / second,
@@ -49,6 +50,7 @@ _DERIVED_UNITS = {
     MASS / TIME: kilogram / second,
     MASS / (LENGTH**3): kilogram / (meter**3),
     MASS / (LENGTH * (TIME**2)): kilogram / meter / (second**2),
+    MASS / (LENGTH * TIME): kilogram / meter / second,
     (MASS * (LENGTH**2)) / (TIME**3): (kilogram * (meter**2)) / (second**3),
     (LENGTH**2) / (TIME**2) / TEMPERATURE: (meter**2) / (second**2) / kelvin_interval,
 }
