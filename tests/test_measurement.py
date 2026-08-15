@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import LENGTH
+from lat_ces.core.dimensions import LENGTH, Unit
 from lat_ces.scientific.measurement import (
     AccuracySpec,
     MeasurementDevice,
@@ -10,7 +10,6 @@ from lat_ces.scientific.measurement import (
     create_diff_pressure_sensor,
     create_pitot_tube,
 )
-from lat_ces.scientific.units.units import Unit
 
 
 def test_measurement_device_applies_calibration_and_uncertainty():

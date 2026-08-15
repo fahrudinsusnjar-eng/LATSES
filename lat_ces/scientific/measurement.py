@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+from lat_ces.core.dimensions import LENGTH, MASS, TIME, Unit
 from lat_ces.scientific.quantity import PhysicalQuantity
-from lat_ces.scientific.units.units import Unit
 
 
 class OutOfRangeError(Exception):
@@ -78,8 +78,6 @@ class MeasurementDevice:
 
 def create_pitot_tube(name: str = "Standard Pitot Tube") -> MeasurementDevice:
     """Create a standard Pitot-Prandtl airflow velocity instrument."""
-    from lat_ces.scientific.dimensions.dimension import LENGTH, TIME
-
     meter_per_second = Unit("meter per second", "m/s", LENGTH / TIME)
     accuracy = AccuracySpec(relative_error=0.015, absolute_error=0.1)
     return MeasurementDevice(
@@ -94,8 +92,6 @@ def create_pitot_tube(name: str = "Standard Pitot Tube") -> MeasurementDevice:
 
 def create_diff_pressure_sensor(name: str = "Plenum DP Sensor") -> MeasurementDevice:
     """Create a differential-pressure transmitter for ducts and plenums."""
-    from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME
-
     pascal = Unit("pascal", "Pa", MASS / (LENGTH * (TIME**2)))
     accuracy = AccuracySpec(relative_error=0.005, absolute_error=1.0)
     return MeasurementDevice(

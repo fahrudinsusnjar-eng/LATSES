@@ -1,7 +1,6 @@
 import pytest
 
-from lat_ces.scientific.dimensions.dimension import LENGTH, MASS, TIME, FORCE, TEMPERATURE
-from lat_ces.scientific.units.units import Unit, UnitSKOError
+from lat_ces.core.dimensions import FORCE, LENGTH, MASS, TEMPERATURE, TIME, Unit, UnitSKOError
 
 
 kilogram = Unit("kilogram", "kg", MASS)
