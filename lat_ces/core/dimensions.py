@@ -61,7 +61,7 @@ class Dimension:
         )
 
 
-class UnitSKOError(Exception):
+class UnitSKOError(ValueError):
     """Raised for invalid SKO status or incompatible unit conversions."""
 
 
