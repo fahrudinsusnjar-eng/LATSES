@@ -29,7 +29,7 @@ def test_legacy_keyword_dimension_form_is_preserved():
 def test_derived_dimension_mapping_is_canonical():
     quantity = LegacyPhysicalQuantity(100.0, LENGTH, 2.0) / LegacyPhysicalQuantity(10.0, TIME, 0.1)
     assert quantity.dimension == VELOCITY
-    assert quantity.unit is dimension_to_unit(VELOCITY)
+    assert quantity.unit == dimension_to_unit(VELOCITY)
     expected_u = 10.0 * math.sqrt((2.0 / 100.0) ** 2 + (0.1 / 10.0) ** 2)
     assert math.isclose(quantity.uncertainty, expected_u)
 
