@@ -7,14 +7,14 @@ PRODUCTION_ROOT = REPO_ROOT / "lat_ces"
 LEGACY_ROOT = PRODUCTION_ROOT / "modules"
 
 
-def _module_name_from_import(node: ast.AST) -> str:
+def _imported_module_names(node: ast.AST) -> list[str]:
     if isinstance(node, ast.Import):
-        return node.names[0].name
+        return [alias.name for alias in node.names]
     if isinstance(node, ast.ImportFrom):
         if node.level:
-            return ""
-        return node.module or ""
-    return ""
+            return []
+        return [node.module or ""]
+    return []
 
 
 def test_production_code_does_not_introduce_legacy_module_imports():
@@ -28,9 +28,9 @@ def test_production_code_does_not_introduce_legacy_module_imports():
 
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            module_name = _module_name_from_import(node)
-            if module_name == "lat_ces.modules" or module_name.startswith("lat_ces.modules."):
-                violations.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}: {module_name}")
+            for module_name in _imported_module_names(node):
+                if module_name == "lat_ces.modules" or module_name.startswith("lat_ces.modules."):
+                    violations.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}: {module_name}")
 
     assert not violations, "Production code must not introduce legacy imports:\n" + "\n".join(violations)
 
