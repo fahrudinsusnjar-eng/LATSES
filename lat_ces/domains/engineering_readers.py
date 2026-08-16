@@ -1,52 +1,54 @@
-"""Read-only engineering domain readers over the shared input snapshot."""
+"""Read-only Structural/Fluid/Thermal readers over one shared graph snapshot."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from .read_only import EngineeringInputSnapshot, ReadOnlyDomainView
-from lat_ces.engineering_graph.graph import NodeKind, GraphNode
-
-
-@dataclass(frozen=True)
-class DomainInput:
-    domain: str
-    snapshot: EngineeringInputSnapshot
-    nodes: tuple[GraphNode, ...]
-
-    def source_refs(self) -> tuple[str, ...]:
-        return tuple(node.source_ref for node in self.nodes)
+from .read_only import ReadOnlyDomainView
+from .reader_contract import EngineeringReaderContract
+from lat_ces.engineering_graph.graph import NodeKind
 
 
 class _DomainReader:
     DOMAIN: str = ""
-    KINDS: tuple[NodeKind, ...] = ()
+    REQUIRED_KINDS: tuple[NodeKind, ...] = ()
+    OPTIONAL_KINDS: tuple[NodeKind, ...] = ()
 
-    def read(self, view: ReadOnlyDomainView) -> DomainInput:
+    def read(self, view: ReadOnlyDomainView) -> EngineeringReaderContract:
         if view.domain != self.DOMAIN:
             raise ValueError(f"Reader '{self.DOMAIN}' cannot consume domain '{view.domain}'")
-        nodes = tuple(node for node in view.snapshot.nodes if node.kind in self.KINDS)
-        return DomainInput(domain=self.DOMAIN, snapshot=view.snapshot, nodes=nodes)
+        contract = EngineeringReaderContract(
+            domain=self.DOMAIN,
+            snapshot=view.snapshot,
+            required_kinds=self.REQUIRED_KINDS,
+            optional_kinds=self.OPTIONAL_KINDS,
+        )
+        findings = contract.validate_contract()
+        if findings:
+            raise ValueError("; ".join(findings))
+        return contract
 
 
 class StructuralInputReader(_DomainReader):
     DOMAIN = "structural"
-    KINDS = (
+    REQUIRED_KINDS = (
         NodeKind.BUILDING_MODEL,
         NodeKind.GEOMETRY,
+        NodeKind.LOAD,
+    )
+    OPTIONAL_KINDS = (
         NodeKind.PRODUCT,
         NodeKind.FACT,
         NodeKind.ENVIRONMENT,
         NodeKind.EVIDENCE,
         NodeKind.CONSTRUCTION,
-        NodeKind.LOAD,
     )
 
 
 class FluidInputReader(_DomainReader):
     DOMAIN = "fluid"
-    KINDS = (
+    REQUIRED_KINDS = (
         NodeKind.BUILDING_MODEL,
         NodeKind.GEOMETRY,
+    )
+    OPTIONAL_KINDS = (
         NodeKind.PRODUCT,
         NodeKind.FACT,
         NodeKind.ENVIRONMENT,
@@ -56,17 +58,19 @@ class FluidInputReader(_DomainReader):
 
 class ThermalInputReader(_DomainReader):
     DOMAIN = "thermal"
-    KINDS = (
+    REQUIRED_KINDS = (
         NodeKind.BUILDING_MODEL,
         NodeKind.GEOMETRY,
+        NodeKind.CONSTRUCTION,
+    )
+    OPTIONAL_KINDS = (
         NodeKind.PRODUCT,
         NodeKind.FACT,
         NodeKind.ENVIRONMENT,
-        NodeKind.CONSTRUCTION,
     )
 
 
-def read_domain_inputs(view: ReadOnlyDomainView) -> DomainInput:
+def read_domain_inputs(view: ReadOnlyDomainView) -> EngineeringReaderContract:
     readers = {
         "structural": StructuralInputReader(),
         "fluid": FluidInputReader(),
