@@ -1,3 +1,5 @@
+from math import isclose
+
 from lat_ces.building.floor_plan import Point2D, Segment2D, Wall
 from lat_ces.building.model import BuildingModel, Level
 from lat_ces.building.workflow import make_blank_floor_plan
@@ -16,8 +18,8 @@ def _building() -> BuildingModel:
 
 
 def test_floor_area_comes_from_building_model():
-    assert floor_area_m2(_building(), "Prizemlje") == 80.0
+    assert isclose(floor_area_m2(_building(), "Prizemlje"), 80.0)
 
 
 def test_wall_area_comes_from_building_model():
-    assert wall_area_m2(_building(), "Prizemlje") == 100.8
+    assert isclose(wall_area_m2(_building(), "Prizemlje"), 100.8)
