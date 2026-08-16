@@ -25,6 +25,7 @@ def test_unverified_site_facts_block_climatic_structural_analysis():
 
 def test_all_verified_site_facts_open_climatic_structural_gate():
     site = SiteEnvironment(latitude_deg=44.8, longitude_deg=15.9)
-    for key in gate_keys := SiteVerificationGate().required_keys:
+    gate_keys = SiteVerificationGate().required_keys
+    for key in gate_keys:
         site.add_fact(_fact(key))
     assert SiteVerificationGate(gate_keys).ready_for_climatic_structural_analysis(site)
