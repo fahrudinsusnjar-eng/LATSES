@@ -70,12 +70,7 @@ class PlenumEngine:
         """Calculate volumetric airflow (Q = A * v)."""
         self._require_dimension(area, AREA, "area")
         self._require_dimension(velocity, VELOCITY, "velocity")
-        result = area * velocity
-        return PhysicalQuantity(
-            result.value,
-            uncertainty=result.uncertainty,
-            dimension=FLOW_RATE,
-        )
+        return area * velocity
 
     def calculate_mass_flow(
         self, density: PhysicalQuantity, flow_rate: PhysicalQuantity
@@ -83,12 +78,7 @@ class PlenumEngine:
         """Calculate mass flow (m_dot = rho * Q)."""
         self._require_dimension(density, DENSITY, "density")
         self._require_dimension(flow_rate, FLOW_RATE, "flow_rate")
-        result = density * flow_rate
-        return PhysicalQuantity(
-            result.value,
-            uncertainty=result.uncertainty,
-            dimension=MASS_FLOW,
-        )
+        return density * flow_rate
 
 
 __all__ = ["PlenumError", "PlenumModel", "PlenumEngine"]
