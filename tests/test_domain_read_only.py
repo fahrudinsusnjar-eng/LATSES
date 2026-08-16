@@ -1,3 +1,5 @@
+from dataclasses import FrozenInstanceError
+
 import pytest
 
 from lat_ces.domains.read_only import domain_views
@@ -31,3 +33,9 @@ def test_domain_view_has_no_write_api():
     for name in ("add_node", "append_node", "add_edge", "append_edge", "save", "write", "update", "delete"):
         with pytest.raises(AttributeError):
             getattr(view, name)
+
+
+def test_snapshot_is_immutable():
+    snapshot = domain_views(_graph())["thermal"].snapshot
+    with pytest.raises(FrozenInstanceError):
+        snapshot.nodes = ()
