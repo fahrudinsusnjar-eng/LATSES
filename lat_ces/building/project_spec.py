@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
 
+from .environment import SiteEnvironment
+
 
 @dataclass
 class WallConstructionSpec:
@@ -55,6 +57,7 @@ class BuildingProjectSpec:
     floor_count_finalized: bool = False
     roof_shape: str = "Nije definisan"
     roof_height_m: float = 0.0
+    site: SiteEnvironment | None = None
 
     def set_floor_count(self, count: int) -> None:
         if count < 1 or count > 50:
@@ -65,6 +68,13 @@ class BuildingProjectSpec:
             self.levels.append(LevelProjectSpec(name=f"Etaža {len(self.levels) + 1}"))
         if len(self.levels) > count:
             self.levels = self.levels[:count]
+
+    def set_site(self, site: SiteEnvironment) -> None:
+        if not (-90.0 <= site.latitude_deg <= 90.0):
+            raise ValueError("Geografska širina mora biti između -90 i 90 stepeni")
+        if not (-180.0 <= site.longitude_deg <= 180.0):
+            raise ValueError("Geografska dužina mora biti između -180 i 180 stepeni")
+        self.site = site
 
     def all_levels_finalized(self) -> bool:
         return self.floor_count > 0 and len(self.levels) == self.floor_count and all(
