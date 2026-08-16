@@ -1,9 +1,8 @@
 """Canonical Building Model Foundation.
 
-The model is deliberately topology-first: building, levels, rooms and generic
+The model is topology-first: building, levels, rooms, floor plans and generic
 physical elements are represented before structural, fluid, thermal, acoustic
-or electrical solvers are attached. All scalar geometric/material inputs are
-SI values at this foundation boundary.
+or electrical solvers are attached. Scalar geometric/material inputs are SI.
 """
 
 from __future__ import annotations
@@ -11,7 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from .geometry import Box3D, Point3D
+from .floor_plan import FloorPlan
+from .geometry import Box3D
 
 
 def _id(prefix: str) -> str:
@@ -28,11 +28,7 @@ def _positive(name: str, value: float) -> float:
 
 @dataclass(frozen=True)
 class Material:
-    """Minimal material record shared by future physics engines.
-
-    Optional properties are SI values: kg/m³, Pa, W/(m·K), and dimensionless
-    Poisson ratio. No solver-specific behaviour belongs here.
-    """
+    """Shared physical material record for future domain solvers."""
 
     name: str
     density: float | None = None
@@ -56,8 +52,6 @@ class Material:
 
 @dataclass
 class BuildingElement:
-    """Generic physical element that can later be specialized by solver domains."""
-
     name: str
     geometry: Box3D
     element_type: str = "generic"
@@ -104,6 +98,7 @@ class Level:
     height: float
     level_id: str = field(default_factory=lambda: _id("LVL"))
     rooms: dict[str, Room] = field(default_factory=dict)
+    floor_plan: FloorPlan | None = None
 
     def __post_init__(self) -> None:
         self.height = _positive("Level.height", self.height)
@@ -127,6 +122,10 @@ class Level:
             raise ValueError(f"Duplicate room id: {room.room_id}")
         self.rooms[room.room_id] = room
         return room
+
+    def set_floor_plan(self, floor_plan: FloorPlan) -> FloorPlan:
+        self.floor_plan = floor_plan
+        return floor_plan
 
 
 @dataclass
@@ -168,24 +167,15 @@ class BuildingModel:
 
     @property
     def element_count(self) -> int:
-        return sum(
-            len(room.elements)
-            for level in self.levels.values()
-            for room in level.rooms.values()
-        )
+        return sum(len(room.elements) for level in self.levels.values() for room in level.rooms.values())
 
     def all_rooms(self) -> tuple[Room, ...]:
         return tuple(room for level in self.levels.values() for room in level.rooms.values())
 
     def all_elements(self) -> tuple[BuildingElement, ...]:
-        return tuple(
-            element
-            for room in self.all_rooms()
-            for element in room.elements.values()
-        )
+        return tuple(element for room in self.all_rooms() for element in room.elements.values())
 
     def validate(self) -> list[str]:
-        """Return structural/topological validation findings without mutating the model."""
         findings: list[str] = []
         elevations = sorted((level.elevation, level) for level in self.levels.values())
         for (_, lower), (upper_elevation, _) in zip(elevations, elevations[1:]):
@@ -194,4 +184,7 @@ class BuildingModel:
                     f"Level overlap: {lower.level_id} reaches {lower.top_elevation} m "
                     f"above next elevation {upper_elevation} m"
                 )
+        for level in self.levels.values():
+            if level.floor_plan is not None:
+                findings.extend(level.floor_plan.validate())
         return findings
