@@ -38,15 +38,15 @@ class ExtrudedWall:
     def length(self) -> float:
         dx = self.x2 - self.x1
         dy = self.y2 - self.y1
-        return (dx * dx + dy * dy) ** 0.5
+        return round((dx * dx + dy * dy) ** 0.5, 12)
 
     @property
     def gross_area(self) -> float:
-        return self.length * self.height
+        return round(self.length * self.height, 12)
 
     @property
     def volume(self) -> float:
-        return self.length * self.thickness * self.height
+        return round(self.length * self.thickness * self.height, 12)
 
     def __post_init__(self) -> None:
         if not self.wall_id:
@@ -64,12 +64,12 @@ class LevelGeometry3D:
     walls: tuple[ExtrudedWall, ...]
 
     @property
-    def wall_area(self) -> float:
-        return sum(w.gross_area for w in self.walls)
+    wall_area(self) -> float:
+        return round(sum(w.gross_area for w in self.walls), 12)
 
     @property
-    def wall_volume(self) -> float:
-        return sum(w.volume for w in self.walls)
+    wall_volume(self) -> float:
+        return round(sum(w.volume for w in self.walls), 12)
 
 
 def build_level_geometry(level: Level, wall_thickness: float | None = None) -> LevelGeometry3D:
