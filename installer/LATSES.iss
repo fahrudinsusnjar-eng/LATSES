@@ -1,5 +1,5 @@
 #define AppName "LAT-CES Scientific Engineering"
-#define AppVersion "1.0.0"
+#define AppVersion "1.1.0"
 #define AppPublisher "LATSES"
 #define AppExeName "LATSES.exe"
 
@@ -24,6 +24,9 @@ Source: "..\dist\LATSES.exe"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\LAT-CES Scientific Engineering"; Filename: "{app}\LATSES.exe"
 Name: "{commondesktop}\LAT-CES Scientific Engineering"; Filename: "{app}\LATSES.exe"
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}"
 
 [Run]
 Filename: "{app}\LATSES.exe"; Description: "Start LAT-CES Scientific Engineering"; Flags: nowait postinstall skipifsilent
