@@ -19,7 +19,7 @@ ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 
 [Files]
-Source: "dist\LATSES.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\LATSES.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\LAT-CES Scientific Engineering"; Filename: "{app}\LATSES.exe"
