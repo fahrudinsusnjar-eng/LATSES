@@ -1,31 +1,23 @@
 from typing import Any, Dict
 
-from lat_ces.gov.axiom import ConstitutionalEngine
-from lat_ces.gov.provenance import ProvenanceLedger
-from lat_ces.twin.telemetry import TelemetryIngester, TelemetryPacket
-from lat_ces.twin.observer import LuenbergerObserver
-from lat_ces.control.lqr import SimpleLQRController
-from lat_ces.control.barrier import SafetyBarrier
-from lat_ces.data.timeseries import TimeSeriesStorage
-
 
 class LATCESMasterSystem:
     """Runtime orchestration core for telemetry, state estimation, control and safety.
 
-    Scientific models are intentionally not constructor dependencies. Scientific
-    analyses are injected explicitly into optional evaluation methods so the
-    runtime tick remains decoupled from domain-model construction.
+    The runtime core deliberately has no domain/scientific imports. Concrete
+    runtime collaborators and optional scientific models are supplied by the
+    application/entrypoint layer through dependency injection.
     """
 
     def __init__(
         self,
-        governance: ConstitutionalEngine,
-        ledger: ProvenanceLedger,
-        ingester: TelemetryIngester,
-        observer: LuenbergerObserver,
-        controller: SimpleLQRController,
-        barrier: SafetyBarrier,
-        storage: TimeSeriesStorage,
+        governance: Any,
+        ledger: Any,
+        ingester: Any,
+        observer: Any,
+        controller: Any,
+        barrier: Any,
+        storage: Any,
     ):
         self.governance = governance
         self.ledger = ledger
@@ -37,7 +29,7 @@ class LATCESMasterSystem:
 
     def execute_tick(
         self,
-        packet: TelemetryPacket,
+        packet: Any,
         current_state: list,
         control_input: list,
         fan_power_kw: float = 0.0,
