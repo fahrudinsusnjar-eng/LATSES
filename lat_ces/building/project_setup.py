@@ -78,7 +78,7 @@ class ProjectSetupWizard(tk.Toplevel):
         self._clear()
         self.step = 1
         self.back_btn.configure(state="disabled")
-        self.next_btn.configure(text="Potvrdi etažu →")
+        self.next_btn.configure(text="Potvrdi i prikaži tlocrt →")
         self.subtitle.configure(text=f"Korak 1: dimenzije, zid i raspored prostorija — {self.level_index + 1}. etaža")
 
         top = ttk.LabelFrame(self.body, text="Gabarit i visina", padding=12)
@@ -191,6 +191,21 @@ class ProjectSetupWizard(tk.Toplevel):
         ttk.Entry(box, textvariable=self.roof_height).pack(fill="x", pady=6)
         ttk.Label(box, text="3D model se generiše nakon zaključavanja krova i svih visina etaža.", foreground="#5f6368").pack(anchor="w", pady=(12, 0))
 
+    def _apply_preview(self, spec: LevelProjectSpec) -> None:
+        """Write first-step geometry into the shared BuildingModel for immediate preview."""
+        project = self.app.workflow.ensure_project_spec()
+        if len(project.levels) <= self.level_index:
+            project.set_floor_count(max(self.level_index + 1, 1))
+        project.levels[self.level_index] = spec
+        self.app.workflow.set_level_spec(self.level_index, spec)
+        self.app.step_var.set(1)
+        self.app.refresh_level_combo()
+        self.app.redraw_active_view()
+        self.app.update_summary()
+        self.app.status_var.set(
+            f"Tlocrt potvrđen: {spec.length_m:.2f} × {spec.width_m:.2f} m; {len(spec.rooms)} prostorija"
+        )
+
     def next(self) -> None:
         try:
             if self.step == 1:
@@ -199,6 +214,7 @@ class ProjectSetupWizard(tk.Toplevel):
                     self.level_specs[self.level_index] = spec
                 else:
                     self.level_specs.append(spec)
+                self._apply_preview(spec)
                 self._show_floor_count()
             elif self.step == 2:
                 count = int(self.floor_count.get())
@@ -210,10 +226,9 @@ class ProjectSetupWizard(tk.Toplevel):
                     self.level_specs.extend(LevelProjectSpec(name=f"Etaža {i + 1}") for i in range(len(self.level_specs), count))
                 self.level_index = 0
                 self._load_level_into_form(self.level_specs[0])
-                self.next_btn.configure(text="Zaključi etažu →")
                 self._show_step_one()
-                if count == 1:
-                    self.next_btn.configure(text="Zaključi etažu i nastavi →")
+                self.next_btn.configure(text="Potvrdi i prikaži tlocrt →")
+                self.floor_count.set(count)
             else:
                 height = float(self.roof_height.get().replace(",", "."))
                 if height < 0:
@@ -241,7 +256,7 @@ class ProjectSetupWizard(tk.Toplevel):
         self.level_index = index
         self._load_level_into_form(self.level_specs[index])
         self._show_step_one()
-        self.next_btn.configure(text="Zaključi etažu →")
+        self.next_btn.configure(text="Potvrdi i prikaži tlocrt →")
 
     def back(self) -> None:
         if self.step == 2:
