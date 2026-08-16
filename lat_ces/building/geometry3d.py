@@ -64,11 +64,11 @@ class LevelGeometry3D:
     walls: tuple[ExtrudedWall, ...]
 
     @property
-    wall_area(self) -> float:
+    def wall_area(self) -> float:
         return round(sum(w.gross_area for w in self.walls), 12)
 
     @property
-    wall_volume(self) -> float:
+    def wall_volume(self) -> float:
         return round(sum(w.volume for w in self.walls), 12)
 
 
