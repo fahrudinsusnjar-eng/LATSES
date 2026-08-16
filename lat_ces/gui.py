@@ -1,8 +1,6 @@
 """LAT-CES Windows desktop application.
 
-A thin GUI over the canonical scientific CLI functionality. The command-line
-interface remains available; this module provides the normal double-click
-Windows application experience requested by users.
+Thin GUI adapter over the canonical LAT-CES application service.
 """
 from __future__ import annotations
 
@@ -11,9 +9,7 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-from lat_ces.scientific.analysis.plenum import PlenumAnalysisEngine
-from lat_ces.scientific.cli import _parse_quantity_dict
-from lat_ces.scientific.reports.exporter import SKOReportExporter
+from lat_ces.application.service import analyze_config, export_report, load_config
 
 
 class LATCESApp(tk.Tk):
@@ -31,7 +27,6 @@ class LATCESApp(tk.Tk):
     def _build_ui(self) -> None:
         root = ttk.Frame(self, padding=18)
         root.pack(fill="both", expand=True)
-
         ttk.Label(root, text="LAT-CES Scientific Engineering", font=("Segoe UI", 20, "bold")).pack(anchor="w")
         ttk.Label(root, text="Plenum / fluid safety analysis", font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 16))
 
@@ -61,11 +56,13 @@ class LATCESApp(tk.Tk):
         self.text = tk.Text(result, wrap="word", font=("Consolas", 10))
         self.text.pack(fill="both", expand=True)
         self.text.configure(state="disabled")
-
         ttk.Label(root, textvariable=self.status_var, relief="sunken", anchor="w").pack(fill="x", pady=(10, 0))
 
     def browse_config(self) -> None:
-        path = filedialog.askopenfilename(title="Select LAT-CES JSON configuration", filetypes=(("JSON files", "*.json"), ("All files", "*.*")))
+        path = filedialog.askopenfilename(
+            title="Select LAT-CES JSON configuration",
+            filetypes=(("JSON files", "*.json"), ("All files", "*.*")),
+        )
         if path:
             self.config_path.set(path)
             if not self.output_path.get():
@@ -92,32 +89,21 @@ class LATCESApp(tk.Tk):
             messagebox.showwarning("LAT-CES", "Select a valid JSON configuration file first.")
             return
         try:
-            with config_file.open("r", encoding="utf-8") as fh:
-                config = json.load(fh)
-            inputs = {name: _parse_quantity_dict(q) for name, q in config.get("inputs", {}).items()}
-            calculated_q = _parse_quantity_dict(config["calculated_value"])
-            limit_q = _parse_quantity_dict(config["limit_value"])
-            report = PlenumAnalysisEngine.evaluate_limit(
-                calculated=calculated_q,
-                limit=limit_q,
-                coverage_factor=float(config.get("coverage_factor", 2.0)),
-            )
-            exporter = SKOReportExporter(
-                project_name=config.get("project_name", "LAT-CES Desktop Analysis"),
-                engineer_name=config.get("engineer_name", "Engineer"),
-                plenum_id=config.get("plenum_id", "PLENUM-GUI-01"),
-                safety_report=report,
-                inputs=inputs,
-                equation_name=config.get("equation_name", "Custom equation"),
+            config = load_config(config_file)
+            report, exporter = analyze_config(
+                config,
+                project_default="LAT-CES Desktop Analysis",
+                plenum_default="PLENUM-GUI-01",
+                equation_default="Custom equation",
             )
             fmt = self.format_var.get()
             output = Path(self.output_path.get().strip() or config_file.with_name(f"latces_report.{fmt}"))
-            output.parent.mkdir(parents=True, exist_ok=True)
-            content = exporter.to_json() if fmt == "json" else exporter.to_markdown()
-            output.write_text(content, encoding="utf-8")
+            export_report(exporter, output, fmt)
+            content = json.loads(exporter.to_json()) if fmt == "json" else exporter.to_markdown()
+            display = json.dumps(content, indent=2, ensure_ascii=False) if isinstance(content, dict) else content
             self._show(
                 f"Analysis completed successfully.\n\nStatus: [{report.status.value}]\n\n"
-                f"Report: {output}\n\n{content}"
+                f"Report: {output}\n\n{display}"
             )
             self.status_var.set(f"Completed — {output}")
         except Exception as exc:
