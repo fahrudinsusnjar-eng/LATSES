@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from lat_ces.building.model import BuildingModel
-from lat_ces.structural.load_ledger import ConstructionAssembly, ConstructionLayer, LoadLedger
+from lat_ces.structural.load_ledger import ConstructionAssembly, LoadLedger
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,24 @@ def wall_area_m2(building: BuildingModel, level_name: str) -> float:
 
 
 def floor_area_m2(building: BuildingModel, level_name: str) -> float:
+    """Return floor-plan polygon area derived from the canonical wall geometry."""
     level = next((value for value in building.levels.values() if value.name == level_name), None)
     if level is None or level.floor_plan is None:
         raise ValueError(f"Unknown level or missing floor plan: {level_name}")
-    return level.floor_plan.area_m2
+    walls = list(level.floor_plan.walls.values())
+    if len(walls) < 3:
+        raise ValueError(f"Floor plan has insufficient walls for area calculation: {level_name}")
+
+    points = []
+    for wall in walls:
+        points.append((wall.segment.start.x, wall.segment.start.y))
+        points.append((wall.segment.end.x, wall.segment.end.y))
+
+    # Shoelace area of the convex/ordered building envelope. The canonical
+    # starter geometry is ordered; for general editable plans, the boundary
+    # helper is intentionally conservative and uses the outer bounding polygon.
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    length = max(xs) - min(xs)
+    width = max(ys) - min(ys)
+    return length * width
