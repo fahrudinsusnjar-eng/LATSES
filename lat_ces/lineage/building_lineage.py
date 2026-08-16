@@ -40,10 +40,6 @@ def _add_node(
     )
 
 
-def _fact_status(fact: TechnicalFact) -> str:
-    return fact.state.value
-
-
 def build_building_input_lineage(
     building: BuildingModel,
     catalog: TechnicalCatalogSnapshot,
@@ -72,10 +68,7 @@ def build_building_input_lineage(
         source_ref=f"site:{environment.latitude_deg}:{environment.longitude_deg}",
         version_ref=version,
         recorded_at=recorded_at,
-        metadata={
-            "latitude_deg": str(environment.latitude_deg),
-            "longitude_deg": str(environment.longitude_deg),
-        },
+        metadata={"latitude_deg": str(environment.latitude_deg), "longitude_deg": str(environment.longitude_deg)},
     )
     graph.add_edge(building_node.node_id, environment_node.node_id, "derived_from", recorded_at=recorded_at.isoformat())
 
@@ -100,7 +93,7 @@ def build_building_input_lineage(
             source_ref=fact.fact_id,
             version_ref=fact.state.value,
             recorded_at=fact.observed_at,
-            status=_fact_status(fact),
+            status=fact.state.value,
             metadata={
                 "product_id": fact.product_id,
                 "property_name": fact.property_name,
@@ -111,9 +104,11 @@ def build_building_input_lineage(
         fact_nodes[fact.fact_id] = fact_node
         if fact.product_id in product_nodes:
             graph.add_edge(fact_node.node_id, product_nodes[fact.product_id].node_id, "derived_from", recorded_at=fact.observed_at.isoformat())
+
+    for fact in catalog.facts:
         if fact.supersedes_fact_id and fact.supersedes_fact_id in fact_nodes:
             graph.add_edge(
-                fact_node.node_id,
+                fact_nodes[fact.fact_id].node_id,
                 fact_nodes[fact.supersedes_fact_id].node_id,
                 "supersedes",
                 recorded_at=fact.observed_at.isoformat(),
@@ -134,6 +129,7 @@ def build_building_input_lineage(
         )
         graph.add_edge(fact_node.node_id, verification_node.node_id, "verified_by", recorded_at=verification.checked_at.isoformat())
 
+    evidence_nodes: list[tuple[object, object]] = []
     for record in evidence.records:
         evidence_node = _add_node(
             graph,
@@ -144,7 +140,14 @@ def build_building_input_lineage(
             status=record.state.value,
             metadata={"location": record.location, "system_type": record.system_type, "source": record.source},
         )
+        evidence_nodes.append((record, evidence_node))
         graph.add_edge(evidence_node.node_id, building_node.node_id, "used_by", recorded_at=evidence_node.recorded_at)
+
+    for record, evidence_node in evidence_nodes:
+        if record.supersedes:
+            target = next((node for item, node in evidence_nodes if item.evidence_id == record.supersedes), None)
+            if target is not None:
+                graph.add_edge(evidence_node.node_id, target.node_id, "supersedes", recorded_at=evidence_node.recorded_at)
 
     construction_nodes = []
     for index, assembly in enumerate(load_ledger.assemblies):
@@ -170,7 +173,7 @@ def build_building_input_lineage(
     graph.add_edge(environment_node.node_id, load_node.node_id, "derived_from", recorded_at=recorded_at.isoformat())
     for construction_node in construction_nodes:
         graph.add_edge(construction_node.node_id, load_node.node_id, "derived_from", recorded_at=recorded_at.isoformat())
-    for evidence_node in [node for node in graph.nodes if node.kind == NodeKind.EVIDENCE]:
+    for _, evidence_node in evidence_nodes:
         graph.add_edge(evidence_node.node_id, load_node.node_id, "used_by", recorded_at=recorded_at.isoformat())
 
     return graph
