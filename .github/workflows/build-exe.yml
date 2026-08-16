@@ -47,39 +47,41 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
           Copy-Item .\dist\LATSES.exe .\release\LATSES.exe
-          @'
-@echo off
-setlocal
-cd /d "%~dp0"
-if not exist "LATSES.exe" (
-  echo ERROR: LATSES.exe nije pronadjen.
-  pause
-  exit /b 1
-)
-echo.
-echo LATSES Scientific Core
- echo =====================
-echo.
-echo Za pomoc:
-echo   LATSES.exe --help
-echo.
-echo Za analizu:
-echo   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json
-echo.
-echo Prozor ostaje otvoren nakon zavrsetka.
-echo.
-cmd /k "LATSES.exe --help"
-'@ | Set-Content -Encoding ASCII .\release\START-LATSES.bat
-          @'
-LATSES Windows package
-
-1. Pokreni START-LATSES.bat za korisnicki pokretac.
-2. Ili iz Command Prompt-a pokreni LATSES.exe --help.
-3. Za naučnu analizu koristi:
-   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json
-
-Napomena: LATSES.exe je konzolni (CLI) alat, nije graficki GUI installer.
-'@ | Set-Content -Encoding UTF8 .\release\README-WINDOWS.txt
+          $launcher = @(
+            '@echo off',
+            'setlocal',
+            'cd /d "%~dp0"',
+            'if not exist "LATSES.exe" (',
+            '  echo ERROR: LATSES.exe nije pronadjen.',
+            '  pause',
+            '  exit /b 1',
+            ')',
+            'echo.',
+            'echo LATSES Scientific Core',
+            'echo =====================',
+            'echo.',
+            'echo Za pomoc:',
+            'echo   LATSES.exe --help',
+            'echo.',
+            'echo Za analizu:',
+            'echo   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json',
+            'echo.',
+            'echo Prozor ostaje otvoren nakon zavrsetka.',
+            'echo.',
+            'cmd /k "LATSES.exe --help"'
+          )
+          $launcher | Set-Content -Encoding ASCII .\release\START-LATSES.bat
+          $readme = @(
+            'LATSES Windows package',
+            '',
+            '1. Pokreni START-LATSES.bat za korisnicki pokretac.',
+            '2. Ili iz Command Prompt-a pokreni LATSES.exe --help.',
+            '3. Za naučnu analizu koristi:',
+            '   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json',
+            '',
+            'Napomena: LATSES.exe je konzolni (CLI) alat, nije graficki GUI installer.'
+          )
+          $readme | Set-Content -Encoding UTF8 .\release\README-WINDOWS.txt
           Get-FileHash .\release\LATSES.exe -Algorithm SHA256 | Format-List
 
       - name: Upload LATSES Windows package
