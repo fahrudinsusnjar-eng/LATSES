@@ -1,8 +1,9 @@
 """Canonical contract shared by Structural, Fluid and Thermal input readers.
 
 The contract is intentionally solver-neutral. It exposes one immutable graph
-snapshot plus typed lineage selection helpers. Runtime engineering objects are
-resolved later by domain-specific adapters; no calculator is invoked here.
+snapshot plus domain-scoped lineage selection helpers. Runtime engineering
+objects are resolved later by domain-specific adapters; no calculator is
+invoked here.
 """
 from __future__ import annotations
 
@@ -23,17 +24,25 @@ class EngineeringReaderContract:
     optional_kinds: tuple[NodeKind, ...]
 
     @property
+    def allowed_kinds(self) -> frozenset[NodeKind]:
+        return frozenset((*self.required_kinds, *self.optional_kinds))
+
+    @property
     def nodes(self) -> tuple[GraphNode, ...]:
-        return self.snapshot.nodes
+        """Expose only node kinds declared by this domain contract."""
+        return tuple(node for node in self.snapshot.nodes if node.kind in self.allowed_kinds)
 
     @property
     def edges(self):
+        """Keep the immutable graph edge set available for lineage traversal."""
         return self.snapshot.edges
 
     def by_kind(self, kind: NodeKind) -> tuple[GraphNode, ...]:
         return tuple(node for node in self.nodes if node.kind == kind)
 
     def require_kind(self, kind: NodeKind) -> tuple[GraphNode, ...]:
+        if kind not in self.allowed_kinds:
+            raise ValueError(f"{self.domain} reader does not allow graph kind '{kind.value}'")
         matches = self.by_kind(kind)
         if not matches:
             raise ValueError(f"{self.domain} reader requires graph kind '{kind.value}'")
@@ -58,7 +67,7 @@ class EngineeringReaderContract:
 
     def validate_contract(self) -> tuple[str, ...]:
         findings: list[str] = []
-        available = {node.kind for node in self.nodes}
+        available = {node.kind for node in self.snapshot.nodes}
         missing = [kind.value for kind in self.required_kinds if kind not in available]
         if missing:
             findings.append(
