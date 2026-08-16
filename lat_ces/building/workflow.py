@@ -24,8 +24,80 @@ def make_envelope_floor_plan(name: str, length_m: float, width_m: float, thickne
         (0.0, width_m, 0.0, 0.0),
     )
     for index, (x1, y1, x2, y2) in enumerate(corners, start=1):
-        plan.add_wall(Wall(name=f"Vanjski zid {index}", segment=Segment2D(Point2D(x1, y1), Point2D(x2, y2)), thickness=thickness_m))
+        plan.add_wall(
+            Wall(
+                name=f"Vanjski zid {index}",
+                segment=Segment2D(Point2D(x1, y1), Point2D(x2, y2)),
+                thickness=thickness_m,
+            )
+        )
     return plan
+
+
+def add_room_layout(plan: FloorPlan, spec: LevelProjectSpec) -> None:
+    """Place room partitions from the first-step room dimensions.
+
+    Until interactive room positioning exists, rooms are packed deterministically
+    left-to-right in rows inside the external envelope. Computed x/y coordinates
+    are stored back in RoomSpec so later editing can use the same geometry.
+    """
+    if not spec.rooms:
+        return
+    wall_t = spec.construction.wall_thickness_m
+    inner_l = max(spec.length_m - 2.0 * wall_t, 0.0)
+    inner_w = max(spec.width_m - 2.0 * wall_t, 0.0)
+    if inner_l <= 0 or inner_w <= 0:
+        return
+
+    cursor_x = wall_t
+    cursor_y = wall_t
+    row_height = 0.0
+    for room in spec.rooms:
+        if room.length_m > inner_l or room.width_m > inner_w:
+            raise ValueError(
+                f"Prostorija '{room.name}' ne staje u unutrašnji gabarit {inner_l:.2f} × {inner_w:.2f} m"
+            )
+        if cursor_x + room.length_m > spec.length_m - wall_t + 1e-9:
+            cursor_x = wall_t
+            cursor_y += row_height
+            row_height = 0.0
+        if cursor_y + room.width_m > spec.width_m - wall_t + 1e-9:
+            raise ValueError(
+                f"Raspored prostorija prelazi površinu etaže za '{room.name}'"
+            )
+
+        room.x_m = cursor_x
+        room.y_m = cursor_y
+        x0, y0 = cursor_x, cursor_y
+        x1, y1 = cursor_x + room.length_m, cursor_y + room.width_m
+
+        if x0 > wall_t + 1e-9:
+            plan.add_wall(Wall(
+                name=f"Pregrada — {room.name} lijevo",
+                segment=Segment2D(Point2D(x0, y0), Point2D(x0, y1)),
+                thickness=wall_t,
+            ))
+        if x1 < spec.length_m - wall_t - 1e-9:
+            plan.add_wall(Wall(
+                name=f"Pregrada — {room.name} desno",
+                segment=Segment2D(Point2D(x1, y0), Point2D(x1, y1)),
+                thickness=wall_t,
+            ))
+        if y0 > wall_t + 1e-9:
+            plan.add_wall(Wall(
+                name=f"Pregrada — {room.name} gore",
+                segment=Segment2D(Point2D(x0, y0), Point2D(x1, y0)),
+                thickness=wall_t,
+            ))
+        if y1 < spec.width_m - wall_t - 1e-9:
+            plan.add_wall(Wall(
+                name=f"Pregrada — {room.name} dole",
+                segment=Segment2D(Point2D(x0, y1), Point2D(x1, y1)),
+                thickness=wall_t,
+            ))
+
+        cursor_x += room.length_m
+        row_height = max(row_height, room.width_m)
 
 
 @dataclass
@@ -59,18 +131,30 @@ class BuildingWorkflow:
         project.levels[index] = spec
         levels = list(self.model.levels.values())
         while len(levels) <= index:
-            self.model.add_level(Level(name=f"Etaža {len(levels) + 1}", elevation=0.0, height=2.80, floor_plan=make_blank_floor_plan(f"Etaža {len(levels) + 1}")))
+            self.model.add_level(Level(
+                name=f"Etaža {len(levels) + 1}",
+                elevation=0.0,
+                height=2.80,
+                floor_plan=make_blank_floor_plan(f"Etaža {len(levels) + 1}"),
+            ))
             levels = list(self.model.levels.values())
         level = levels[index]
         level.name = spec.name
         level.height = spec.height_m
         previous = levels[index - 1] if index else None
         level.elevation = previous.top_elevation if previous else 0.0
-        level.set_floor_plan(
-            make_envelope_floor_plan(spec.name, spec.length_m, spec.width_m, spec.construction.wall_thickness_m)
+        plan = (
+            make_envelope_floor_plan(
+                spec.name,
+                spec.length_m,
+                spec.width_m,
+                spec.construction.wall_thickness_m,
+            )
             if spec.length_m > 0 and spec.width_m > 0 and spec.construction.wall_thickness_m > 0
             else make_blank_floor_plan(spec.name)
         )
+        add_room_layout(plan, spec)
+        level.set_floor_plan(plan)
         self.active_level_id = level.level_id
         return level
 
