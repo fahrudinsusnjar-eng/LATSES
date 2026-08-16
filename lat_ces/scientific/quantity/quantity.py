@@ -7,9 +7,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, Union
 
-from lat_ces.core.dimensions import Dimension
+from lat_ces.core.dimensions import Dimension, Unit, UnitSKOError
 from lat_ces.scientific.units.registry import dimension_to_unit
-from lat_ces.scientific.units.units import Unit, UnitSKOError
 from .audit import AuditRecord
 from .equation import Equation
 
