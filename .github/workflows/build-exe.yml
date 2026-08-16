@@ -42,17 +42,50 @@ jobs:
           & .\dist\LATSES.exe --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Package executable
+      - name: Package executable and Windows launcher
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release | Out-Null
           Copy-Item .\dist\LATSES.exe .\release\LATSES.exe
+          @'
+@echo off
+setlocal
+cd /d "%~dp0"
+if not exist "LATSES.exe" (
+  echo ERROR: LATSES.exe nije pronadjen.
+  pause
+  exit /b 1
+)
+echo.
+echo LATSES Scientific Core
+ echo =====================
+echo.
+echo Za pomoc:
+echo   LATSES.exe --help
+echo.
+echo Za analizu:
+echo   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json
+echo.
+echo Prozor ostaje otvoren nakon zavrsetka.
+echo.
+cmd /k "LATSES.exe --help"
+'@ | Set-Content -Encoding ASCII .\release\START-LATSES.bat
+          @'
+LATSES Windows package
+
+1. Pokreni START-LATSES.bat za korisnicki pokretac.
+2. Ili iz Command Prompt-a pokreni LATSES.exe --help.
+3. Za naučnu analizu koristi:
+   LATSES.exe analyze -c examples\plenum_north_config.json -o report.json -f json
+
+Napomena: LATSES.exe je konzolni (CLI) alat, nije graficki GUI installer.
+'@ | Set-Content -Encoding UTF8 .\release\README-WINDOWS.txt
           Get-FileHash .\release\LATSES.exe -Algorithm SHA256 | Format-List
 
-      - name: Upload LATSES.exe artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Upload LATSES Windows package
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: LATSES-Windows-x64
-          path: release/LATSES.exe
+          path: release/*
           if-no-files-found: error
           retention-days: 30
