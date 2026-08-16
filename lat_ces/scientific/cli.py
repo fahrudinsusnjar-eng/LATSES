@@ -5,10 +5,11 @@ import sys
 from pathlib import Path
 
 from lat_ces.application.service import analyze_config, export_report, load_config, parse_quantity_dict
+from lat_ces.scientific.quantity import PhysicalQuantity
 
-# Compatibility export: existing callers may still import the parser from the
-# historical scientific CLI module while the implementation lives in the
-# shared application service.
+# Compatibility exports: existing callers may still import the parser or
+# PhysicalQuantity from the historical scientific CLI module while the
+# implementation lives in the shared application/scientific layers.
 _parse_quantity_dict = parse_quantity_dict
 
 
