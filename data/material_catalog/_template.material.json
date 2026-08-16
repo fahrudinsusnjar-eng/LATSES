@@ -1,0 +1,37 @@
+{
+  "record_id": "manufacturer-product-variant",
+  "material_family": "",
+  "manufacturer": {
+    "name": "",
+    "country": "",
+    "official_domain": "https://example.com"
+  },
+  "product": {
+    "name": "",
+    "product_code": "",
+    "variant": ""
+  },
+  "source": {
+    "url": "https://example.com/official-product-page",
+    "source_type": "manufacturer_page",
+    "retrieved_at": "2026-08-16T00:00:00Z",
+    "document_title": "",
+    "document_revision": ""
+  },
+  "technical_data": [
+    {
+      "property": "",
+      "value": 0,
+      "unit": "",
+      "conditions": "",
+      "manufacturer_note": ""
+    }
+  ],
+  "usage_boundary": {
+    "informational_only": true,
+    "manufacturer_declared": true,
+    "normative_decision_by_ai": false,
+    "engineering_approval_by_ai": false
+  },
+  "notes": "AI collector record. Values must be traceable to the cited official manufacturer source."
+}
