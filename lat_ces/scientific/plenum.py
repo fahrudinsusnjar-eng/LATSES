@@ -1,7 +1,15 @@
 """
 LAT-SCI-CORE-0023: Plenum Aerodynamic & Acoustic Noise Model Reference Implementation
+
+The ``PlenumModel`` API remains the lightweight aerodynamic/acoustic model.
+``PlenumEngine`` is the canonical home for the former ``lat_ces.modules.plenum``
+quantity-based flow and mass-flow calculations.  The legacy module now only
+re-exports that class as a compatibility facade.
 """
 import math
+
+from lat_ces.core.dimensions import AREA, DENSITY, FLOW_RATE, MASS_FLOW, VELOCITY
+from lat_ces.scientific.quantity import PhysicalQuantity
 
 
 class PlenumError(Exception):
@@ -39,3 +47,38 @@ class PlenumModel:
         baseline_db = 30.0
         noise_db = baseline_db + 50.0 * math.log10(velocity)
         return round(noise_db, 2)
+
+
+class PlenumEngine:
+    """Canonical quantity-based plenum flow engine.
+
+    This class preserves the public calculation contract of the former
+    ``lat_ces.modules.plenum.PlenumEngine`` while using the canonical
+    scientific ``PhysicalQuantity`` implementation directly.
+    """
+
+    @staticmethod
+    def _require_dimension(quantity: PhysicalQuantity, expected, name: str) -> None:
+        if quantity.dimension != expected:
+            raise ValueError(
+                f"{name} must have dimension {expected}, got {quantity.dimension}"
+            )
+
+    def calculate_airflow(
+        self, area: PhysicalQuantity, velocity: PhysicalQuantity
+    ) -> PhysicalQuantity:
+        """Calculate volumetric airflow (Q = A * v)."""
+        self._require_dimension(area, AREA, "area")
+        self._require_dimension(velocity, VELOCITY, "velocity")
+        return area * velocity
+
+    def calculate_mass_flow(
+        self, density: PhysicalQuantity, flow_rate: PhysicalQuantity
+    ) -> PhysicalQuantity:
+        """Calculate mass flow (m_dot = rho * Q)."""
+        self._require_dimension(density, DENSITY, "density")
+        self._require_dimension(flow_rate, FLOW_RATE, "flow_rate")
+        return density * flow_rate
+
+
+__all__ = ["PlenumError", "PlenumModel", "PlenumEngine"]
