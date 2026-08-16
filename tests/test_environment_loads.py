@@ -45,4 +45,4 @@ def test_load_ledger_adapter_is_read_only_boundary():
     snapshot = apply_environmental_actions(site, ledger)
     assert snapshot.wind_basic_velocity == 1.0
     assert len(site.facts) == len(SiteVerificationGate().required_keys)
-    assert ledger.entries == []
+    assert ledger.assemblies == []
