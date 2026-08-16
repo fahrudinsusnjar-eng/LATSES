@@ -48,6 +48,12 @@ jobs:
           if ($size -lt 1000000) { throw "LATSES.exe is unexpectedly small: $size bytes" }
           Write-Host "LATSES.exe size: $size bytes"
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build standard Windows installer
         shell: pwsh
         run: |
@@ -55,7 +61,7 @@ jobs:
             '${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe',
             '${env:ProgramFiles}\Inno Setup 6\ISCC.exe'
           ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $iscc) { throw 'Inno Setup 6 compiler not found on runner' }
+          if (-not $iscc) { throw 'Inno Setup 6 compiler not found after installation' }
           & $iscc 'installer\LATSES.iss'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
