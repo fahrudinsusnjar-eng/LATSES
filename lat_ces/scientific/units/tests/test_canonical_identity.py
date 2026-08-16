@@ -9,10 +9,12 @@ class objects rather than introducing parallel implementations.
 from lat_ces.core.dimensions import Dimension as CoreDimension
 from lat_ces.core.dimensions import Unit as CoreUnit
 from lat_ces.scientific.dimensions.dimension import Dimension as ScientificDimension
-from lat_ces.scientific.units.dimension import Dimension as UnitsDimension
-from lat_ces.scientific.units.units import Unit as ScientificUnit
 from lat_ces.scientific.quantity import PhysicalQuantity
 from lat_ces.scientific.quantity.quantity import PhysicalQuantity as QuantityModulePhysicalQuantity
+from lat_ces.scientific.quantity.quantity import Unit as QuantityModuleUnit
+from lat_ces.scientific.quantities.quantity import Unit as QuantitiesModuleUnit
+from lat_ces.scientific.units.dimension import Dimension as UnitsDimension
+from lat_ces.scientific.units.units import Unit as ScientificUnit
 
 
 def test_dimension_identity_is_canonical():
@@ -22,6 +24,8 @@ def test_dimension_identity_is_canonical():
 
 def test_unit_identity_is_canonical():
     assert ScientificUnit is CoreUnit
+    assert QuantityModuleUnit is CoreUnit
+    assert QuantitiesModuleUnit is CoreUnit
 
 
 def test_physical_quantity_identity_is_canonical():
