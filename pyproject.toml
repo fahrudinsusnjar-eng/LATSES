@@ -13,8 +13,10 @@ dependencies = []
 [project.scripts]
 lat-ces = "lat_ces.cli:main"
 
-[tool.setuptools]
-packages = ["lat_ses", "lat_ces", "lat_ces.core"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lat_ces*", "lat_ses*"]
+namespaces = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
