@@ -1,13 +1,15 @@
 """Live dimensioned drafting layer for the LAT-CES Building Model editor."""
 from __future__ import annotations
 
-import math
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from lat_ces.building.floor_plan import Opening, Point2D, Segment2D, Wall
+from lat_ces.building.geometry import Box3D, Point3D
 from lat_ces.building.geometry3d import build_geometry
+from lat_ces.building.model import Level
 from lat_ces.building.orientation import ViewStyle
+from lat_ces.building.workflow import make_envelope_floor_plan
 from lat_ces.gui_enhanced import EnhancedLATCESApp
 
 
@@ -15,8 +17,9 @@ class DraftingLATCESApp(EnhancedLATCESApp):
     """Dimension-first drafting: create, preview, place and measure elements."""
 
     def __init__(self) -> None:
-        self.wall_length_var = tk.StringVar(value="3.00")
-        self.wall_thickness_var = tk.StringVar(value="0.20")
+        # Do not create Tk variables here: EnhancedLATCESApp/LATCESApp has not
+        # created the root window yet.  Tk variables are initialized in
+        # _build_side_panel(), which runs after the root exists.
         self.wall_drafting = False
         self.wall_preview_id: int | None = None
         self.wall_draft_length = 3.0
@@ -28,6 +31,10 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         self.canvas.bind("<Motion>", self._draft_motion, add="+")
 
     def _build_side_panel(self, side: ttk.Frame) -> None:
+        # LATCESApp creates the Tk root before this hook is called, so this is
+        # the first safe place to construct these StringVars.
+        self.wall_length_var = tk.StringVar(master=self, value="3.00")
+        self.wall_thickness_var = tk.StringVar(master=self, value="0.20")
         super()._build_side_panel(side)
         box = ttk.LabelFrame(side, text="Dodaj novi zid", padding=8)
         box.pack(fill="x", pady=(10, 0))
@@ -41,6 +48,97 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         ttk.Button(self.wall_fields, text="Kreiraj zid", command=self._create_wall_preview).grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         ttk.Label(box, text="Nakon 'Kreiraj zid' linija prati miš. Klikom je postavljaš na željeno mjesto.", wraplength=315).pack(anchor="w", pady=(6, 0))
         self.wall_fields.pack_forget()
+
+    def configure_stage(self, step: int) -> None:
+        super().configure_stage(step)
+        if step != 2:
+            return
+        levels = list(self.workflow.model.levels.values())
+        if not levels:
+            return
+        is_ground = levels[0].level_id == self.active_level.level_id
+        if is_ground:
+            self.level_length_var.set("10.00")
+            self.level_width_var.set("10.00")
+        for child in self.stage_controls.winfo_children():
+            row = str(child.grid_info().get("row", ""))
+            if row in {"2", "3"} and child.winfo_class() == "TEntry":
+                child.configure(state="disabled" if is_ground else "normal")
+
+    @staticmethod
+    def _is_default_envelope(plan) -> bool:
+        return bool(plan) and plan.wall_count == 4 and all(
+            wall.name.startswith("Vanjski zid") and not wall.openings
+            for wall in plan.walls.values()
+        )
+
+    def apply_level_spec(self) -> None:
+        """Apply level dimensions without collapsing rectangular floors to squares."""
+        try:
+            name = self.level_name_var.get().strip()
+            height = float(self.height_var.get())
+            length = float(self.level_length_var.get())
+            width = float(self.level_width_var.get())
+            if not name or height <= 0 or length <= 0 or width <= 0:
+                raise ValueError("Naziv i dimenzije etaže moraju biti pozitivne")
+        except ValueError as exc:
+            messagebox.showwarning("LAT-CES — Etaža", str(exc), parent=self)
+            return
+
+        levels = list(self.workflow.model.levels.values())
+        level = self.active_level
+        if levels and levels[0].level_id == level.level_id:
+            length = width = 10.0
+            self.level_length_var.set("10.00")
+            self.level_width_var.set("10.00")
+
+        old_length = level.length_m or 10.0
+        old_width = level.width_m or 10.0
+        plan = level.floor_plan
+        if plan is None or self._is_default_envelope(plan):
+            level.set_floor_plan(make_envelope_floor_plan(name, length, width, 0.20))
+        else:
+            sx = length / old_length if old_length else 1.0
+            sy = width / old_width if old_width else 1.0
+            for wall in plan.walls.values():
+                start, end = wall.segment.start, wall.segment.end
+                old_wall_length = wall.segment.length
+                wall.segment = Segment2D(
+                    Point2D(start.x * sx, start.y * sy),
+                    Point2D(end.x * sx, end.y * sy),
+                )
+                ratio = wall.segment.length / old_wall_length if old_wall_length else 1.0
+                wall.openings = [
+                    Opening(
+                        kind=o.kind,
+                        offset=o.offset * ratio,
+                        width=o.width * ratio,
+                        height_m=o.height_m,
+                    )
+                    for o in wall.openings
+                ]
+            for room in level.rooms.values():
+                fp = room.footprint
+                room.footprint = Box3D(
+                    Point3D(fp.origin.x * sx, fp.origin.y * sy, fp.origin.z),
+                    fp.length * sx,
+                    fp.width * sy,
+                    fp.height,
+                )
+            plan.name = name
+
+        level.name = name
+        level.height = height
+        level.length_m = length
+        level.width_m = width
+        self.status_var.set(f"Etaža primijenjena: {name} · {length:.2f} × {width:.2f} × {height:.2f} m")
+        self.refresh_view()
+
+    def apply_roof(self) -> None:
+        """The roof follows the fixed 10 × 10 building envelope."""
+        self.level_length_var.set("10.00")
+        self.level_width_var.set("10.00")
+        super().apply_roof()
 
     def _open_wall_editor(self) -> None:
         self.wall_fields.pack(fill="x", pady=(6, 0))
@@ -192,7 +290,6 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         super()._drop_opening(point, kind)
 
 
-# Entry point used by the Windows installer for the new drafting workflow.
 def main() -> None:
     DraftingLATCESApp().mainloop()
 

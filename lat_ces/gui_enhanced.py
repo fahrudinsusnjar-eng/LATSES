@@ -88,7 +88,16 @@ class EnhancedLATCESApp(LATCESApp):
 
     def _drag_label(self, parent: ttk.Widget, text: str, payload: str) -> None:
         label = ttk.Label(parent, text=text, relief="raised", padding=(5, 4), cursor="hand2")
-        label.pack(side="left", fill="x", expand=True, padx=2, pady=2)
+        if parent.grid_slaves():
+            # The field rows in room/partition/opening containers use grid.
+            # Never mix pack and grid inside the same Tk container.
+            next_row = max((int(child.grid_info().get("row", 0)) for child in parent.grid_slaves()), default=-1) + 1
+            label.grid(row=next_row, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
+            parent.columnconfigure(0, weight=1)
+            parent.columnconfigure(1, weight=1)
+        else:
+            # The dedicated button row is an otherwise empty frame, so pack is safe.
+            label.pack(side="left", fill="x", expand=True, padx=2, pady=2)
         label.bind("<ButtonPress-1>", lambda _event, value=payload: self._start_payload(value))
 
     def _start_payload(self, payload: str) -> None:
