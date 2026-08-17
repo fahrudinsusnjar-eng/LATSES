@@ -12,7 +12,7 @@ dependencies = []
 
 [project.scripts]
 lat-ces = "lat_ces.cli:main"
-lat-ces-gui = "lat_ces.gui_enhanced:main"
+lat-ces-gui = "lat_ces.gui_drafting:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
