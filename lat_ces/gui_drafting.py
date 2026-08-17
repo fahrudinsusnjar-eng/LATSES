@@ -126,11 +126,7 @@ class DraftingLATCESApp(EnhancedLATCESApp):
             self.canvas.create_text(20, 20, text="PREVIEW ZIDA — pomjeraj miš i klikni za postavljanje", anchor="nw", fill="#1d4ed8", font=("Segoe UI", 10, "bold"), tags="live-dimension")
 
     def _draw_3d_wall_face(self, wall, z0: float, scale: float, width: float, height: float, style: ViewStyle) -> None:
-        """Render the wall as solid faces around opening voids.
-
-        The canonical wall remains one object. Openings only subtract visible
-        face area; this keeps FloorPlan → BuildingModel → 3D as one chain.
-        """
+        """Render the wall as solid faces around opening voids."""
         openings = sorted(wall.openings, key=lambda item: item.offset)
         cursor = 0.0
         dx = wall.x2 - wall.x1
@@ -160,7 +156,6 @@ class DraftingLATCESApp(EnhancedLATCESApp):
             start = max(0.0, min(length, opening.offset))
             end = max(start, min(length, opening.offset + opening.width))
             face(cursor, start, z0, z0 + wall.height)
-            # Doors/windows currently start at floor level; the upper lintel is the wall above the opening.
             face(start, end, z0 + opening.height_m, z0 + wall.height)
             cursor = end
         face(cursor, length, z0, z0 + wall.height)
@@ -174,13 +169,13 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         for idx, geometry in enumerate(geometries):
             z0 = sum(g.height for g in geometries[:idx])
             for wall in geometry.walls:
-                self._draw_3d_wall_face(wall, z0, scale * self.zoom_3d, width, height, style)
+                self._draw_3d_wall_face(wall, z0, scale, width, height, style)
         roof = self.workflow.model.roof
         if roof and roof.height_m > 0 and geometries:
             top = sum(g.height for g in geometries)
             corners = ((0.0, 0.0, top), (roof.length_m, 0.0, top), (roof.length_m, roof.width_m, top), (0.0, roof.width_m, top))
-            pts = [self.project_3d(x, y, z, scale * self.zoom_3d, width, height) for x, y, z in corners]
-            peak = self.project_3d(roof.length_m / 2.0, roof.width_m / 2.0, top + roof.height_m, scale * self.zoom_3d, width, height)
+            pts = [self.project_3d(x, y, z, scale, width, height) for x, y, z in corners]
+            peak = self.project_3d(roof.length_m / 2.0, roof.width_m / 2.0, top + roof.height_m, scale, width, height)
             if style is ViewStyle.CONSTRUCTIONAL_LINE:
                 for i in range(4):
                     self.canvas.create_line(*pts[i], *pts[(i + 1) % 4], fill="#7c3aed", width=2)
