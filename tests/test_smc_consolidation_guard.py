@@ -10,7 +10,9 @@ LEGACY_IMPORTS = (
     "lat_ces.modules.equation",
 )
 
-EXCLUDED_DIRS = {".git", ".pytest_cache", "build", "dist", "__pycache__"}
+# The guard protects production/source ownership. Tests may intentionally mention
+# retired import paths to prove that the retirement itself is enforced.
+EXCLUDED_DIRS = {".git", ".pytest_cache", "build", "dist", "__pycache__", "tests"}
 
 
 def _source_files():
