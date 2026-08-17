@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 
 from .environment import SiteEnvironment
+from .orientation import BuildingOrientation
 
 
 @dataclass
@@ -92,6 +93,7 @@ class BuildingProjectSpec:
     roof_shape: str = "Nije definisan"
     roof_height_m: float = 0.0
     roof: RoofSpec = field(default_factory=RoofSpec)
+    orientation: BuildingOrientation = field(default_factory=BuildingOrientation)
     site: SiteEnvironment | None = None
 
     def set_floor_count(self, count: int) -> None:
@@ -110,6 +112,9 @@ class BuildingProjectSpec:
         if not (-180.0 <= site.longitude_deg <= 180.0):
             raise ValueError("Geografska dužina mora biti između -180 i 180 stepeni")
         self.site = site
+
+    def set_orientation(self, north_azimuth_deg: float) -> None:
+        self.orientation = BuildingOrientation(north_azimuth_deg=north_azimuth_deg)
 
     def all_levels_finalized(self) -> bool:
         return self.floor_count > 0 and len(self.levels) == self.floor_count and all(
