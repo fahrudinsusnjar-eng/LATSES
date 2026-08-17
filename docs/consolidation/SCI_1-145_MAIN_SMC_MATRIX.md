@@ -13,14 +13,7 @@
 
 ## Execution rule
 
-No RETIRE is valid without:
-
-1. zero production imports;
-2. zero required test imports;
-3. canonical replacement available;
-4. regression evidence;
-5. CI GREEN;
-6. SMC-004 acceptance.
+No RETIRE is valid without zero production imports, zero required test imports, canonical replacement, regression evidence, CI GREEN and SMC-004 acceptance.
 
 ## 55/55 matrix
 
@@ -35,7 +28,7 @@ No RETIRE is valid without:
 | 0007 | Dimension algebra | `lat_ces/scientific/units/core.py` | canonical Scientific Units algebra | MOVE |
 | 0008 | SKO/unit bridge | `lat_ces/scientific/core` + units | compatibility bridge | MERGE |
 | 0009 | Core validation | `lat_ces/scientific/core/validation` | core validation/tests | MERGE |
-| 0010 | Physical quantity legacy API | `lat_ces/scientific/quantity` | canonical `PhysicalQuantity`; bridge retired | RETIRE |
+| 0010 | Physical quantity legacy API | `lat_ces/scientific/quantity` | canonical PhysicalQuantity; bridge retired | RETIRE |
 | 0011 | Equation engine | `lat_ces/scientific/equations/legacy.py` | legacy API moved under Scientific Equations | MOVE + ADAPT |
 | 0012 | Plenum | `lat_ces/scientific/models/plenum` | legacy + scientific plenum paths | MERGE + ADAPT |
 | 0013 | Acoustics | `lat_ces/scientific/models/acoustics` | legacy + scientific acoustics | MERGE + ADAPT |
@@ -81,12 +74,3 @@ No RETIRE is valid without:
 | 0053 | Measurement hardening verification | `lat_ces/scientific/measurement` verification | tests/evidence | KEEP |
 | 0054 | Scientific data provenance specification | `lat_ces/scientific/provenance.py` | canonical facade + `gov/provenance.py` storage | MERGE |
 | 0055 | Scientific data provenance implementation | `lat_ces/scientific/provenance.py` | ScientificProvenance + legacy ledger adapter | ADAPT |
-
-## Consolidation invariants
-
-- No SCI number creates a new module by itself.
-- Scientific functionality has one canonical owner.
-- Legacy paths are compatibility layers until import-zero evidence is demonstrated.
-- Historical provenance data is preserved.
-- Verification artifacts belong to SMC rather than application modules.
-- Retirement is evidence-driven and CI-gated.
