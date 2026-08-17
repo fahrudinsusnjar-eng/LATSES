@@ -35,6 +35,7 @@ class Opening:
     kind: str
     offset: float
     width: float
+    height_m: float = 2.10
     opening_id: str = field(default_factory=lambda: f"OPN-{uuid4()}")
 
     def __post_init__(self) -> None:
@@ -42,6 +43,8 @@ class Opening:
             raise ValueError("Opening.kind must not be empty")
         if self.offset < 0 or self.width <= 0:
             raise ValueError("Opening offset must be >= 0 and width must be > 0")
+        if self.height_m <= 0:
+            raise ValueError("Opening.height_m must be > 0")
 
 
 @dataclass
