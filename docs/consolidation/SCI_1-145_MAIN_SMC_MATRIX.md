@@ -31,11 +31,11 @@ No RETIRE is valid without:
 | 0003 | SKO identity | `lat_ces/scientific/core` | `lat_ces/core/sko.py` | MERGE |
 | 0004 | SKO governance | `lat_ces/scientific/core` | `lat_ces/core/sko.py` | MERGE |
 | 0005 | SKO verification | `lat_ces/scientific/core/verification` | core/SKO tests | MERGE |
-| 0006 | Dimensions | `lat_ces/scientific/units/core.py` | implementation moved; `core/dimensions.py` compatibility facade | MOVE |
+| 0006 | Dimensions | `lat_ces/scientific/units/core.py` | implementation moved; core facade | MOVE |
 | 0007 | Dimension algebra | `lat_ces/scientific/units/core.py` | canonical Scientific Units algebra | MOVE |
 | 0008 | SKO/unit bridge | `lat_ces/scientific/core` + units | compatibility bridge | MERGE |
 | 0009 | Core validation | `lat_ces/scientific/core/validation` | core validation/tests | MERGE |
-| 0010 | Physical quantity legacy API | `lat_ces/scientific/quantity` | compatibility bridge retired; canonical `PhysicalQuantity` | RETIRE |
+| 0010 | Physical quantity legacy API | `lat_ces/scientific/quantity` | canonical `PhysicalQuantity`; bridge retired | RETIRE |
 | 0011 | Equation engine | `lat_ces/scientific/equations/legacy.py` | legacy API moved under Scientific Equations | MOVE + ADAPT |
 | 0012 | Plenum | `lat_ces/scientific/models/plenum` | legacy + scientific plenum paths | MERGE + ADAPT |
 | 0013 | Acoustics | `lat_ces/scientific/models/acoustics` | legacy + scientific acoustics | MERGE + ADAPT |
@@ -74,7 +74,7 @@ No RETIRE is valid without:
 | 0046 | Measurement specification | `lat_ces/scientific/measurement.py` | actual measurement implementation/tests | MERGE |
 | 0047 | Measurement implementation | `lat_ces/scientific/measurement.py` | actual measurement.py | KEEP + ADAPT |
 | 0048 | Measurement verification specification | `lat_ces/scientific/measurement` verification | measurement tests | MERGE |
-| 0049 | Measurement verification | `lat_ces/scientific/measurement` verification | measurement evidence/tests | KEEP |
+| 0049 | Measurement verification | `lat_ces/scientific/measurement` verification | measurement evidence | KEEP |
 | 0050 | Measurement hardening specification | `lat_ces/scientific/measurement` integrity | measurement/integrity tests | ADAPT |
 | 0051 | Measurement hardening implementation | `lat_ces/scientific/measurement.py` | actual measurement.py | ADAPT |
 | 0052 | Measurement hardening verification spec | `lat_ces/scientific/measurement` verification | tests | MERGE |
