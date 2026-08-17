@@ -1,7 +1,8 @@
+from lat_ces.building.geometry3d import LevelGeometry3D
 from lat_ces.building.model import BuildingModel
 from lat_ces.building.orientation import BuildingOrientation, CardinalDirection, ViewStyle
 from lat_ces.building.section import SectionAxis, SectionDefinition, SectionView
-from lat_ces.building.geometry3d import LevelGeometry3D
+from lat_ces.building.view3d import Model3DView
 
 
 def test_orientation_exposes_cardinal_azimuths() -> None:
@@ -36,3 +37,15 @@ def test_section_supports_line_and_natural_views() -> None:
     assert line_view.is_line_based
     assert not line_view.is_natural
     assert natural_view.is_natural
+
+
+def test_3d_view_supports_line_and_natural_styles() -> None:
+    geometry = LevelGeometry3D(level_id="L1", height=2.8, walls=())
+
+    line_view = Model3DView(levels=(geometry,), style=ViewStyle.CONSTRUCTIONAL_LINE)
+    natural_view = Model3DView(levels=(geometry,), style=ViewStyle.NATURAL, show_materials=True)
+
+    assert line_view.is_line_based
+    assert not line_view.is_natural
+    assert natural_view.is_natural
+    assert natural_view.show_materials
