@@ -64,3 +64,5 @@ jobs:
           tail -n 120 pytest-output.log || true
           echo '```'
         } >> "$GITHUB_STEP_SUMMARY"
+
+# CI trigger comment: SMC-004 acceptance verification.
