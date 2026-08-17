@@ -4,7 +4,7 @@ Dokument: LAT-SCI-MOD-0017
 """
 import math
 from lat_ces.core.dimensions import DENSITY, VELOCITY
-from lat_ces.modules.quantity import PhysicalQuantity
+from lat_ces.scientific.quantity import PhysicalQuantity
 from lat_ces.modules.pressure import PRESSURE
 
 class FittingLossEngine:
