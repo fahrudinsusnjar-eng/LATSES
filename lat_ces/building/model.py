@@ -4,7 +4,6 @@ The model is topology-first: building, levels, rooms, floor plans and generic
 physical elements are represented before structural, fluid, thermal, acoustic
 or electrical solvers are attached. Scalar geometric/material inputs are SI.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -12,6 +11,7 @@ from uuid import uuid4
 
 from .floor_plan import FloorPlan
 from .geometry import Box3D
+from .orientation import BuildingOrientation
 
 
 def _id(prefix: str) -> str:
@@ -48,6 +48,31 @@ class Material:
             raise ValueError("Material.thermal_conductivity must be > 0")
         if self.poisson_ratio is not None and not (-1.0 < self.poisson_ratio < 0.5):
             raise ValueError("Material.poisson_ratio must be between -1 and 0.5")
+
+
+@dataclass
+class Roof:
+    """Building-level roof definition shared by section and 3D views."""
+
+    roof_type: str = "Nije definisan"
+    construction: str = ""
+    covering: str = ""
+    substructure: str = ""
+    support: str = ""
+    length_m: float = 0.0
+    width_m: float = 0.0
+    slope_deg: float = 0.0
+    height_m: float = 0.0
+    roof_id: str = field(default_factory=lambda: _id("ROOF"))
+
+    def __post_init__(self) -> None:
+        if not self.roof_type.strip():
+            raise ValueError("Roof.roof_type must not be empty")
+        for name, value in (("length_m", self.length_m), ("width_m", self.width_m), ("height_m", self.height_m)):
+            if value < 0:
+                raise ValueError(f"Roof.{name} must be >= 0")
+        if not 0.0 <= self.slope_deg < 90.0:
+            raise ValueError("Roof.slope_deg must be between 0 and 90 degrees")
 
 
 @dataclass
@@ -97,6 +122,12 @@ class Level:
     elevation: float
     height: float
     level_id: str = field(default_factory=lambda: _id("LVL"))
+    length_m: float = 0.0
+    width_m: float = 0.0
+    wall_construction: str = ""
+    insulation: str = ""
+    cladding: str = ""
+    joinery: str = ""
     rooms: dict[str, Room] = field(default_factory=dict)
     floor_plan: FloorPlan | None = None
 
@@ -104,6 +135,9 @@ class Level:
         self.height = _positive("Level.height", self.height)
         if not self.name.strip():
             raise ValueError("Level.name must not be empty")
+        for name, value in (("length_m", self.length_m), ("width_m", self.width_m)):
+            if value < 0:
+                raise ValueError(f"Level.{name} must be >= 0")
 
     @property
     def top_elevation(self) -> float:
@@ -136,6 +170,8 @@ class BuildingModel:
     model_id: str = field(default_factory=lambda: _id("BLDG"))
     levels: dict[str, Level] = field(default_factory=dict)
     materials: dict[str, Material] = field(default_factory=dict)
+    roof: Roof | None = None
+    orientation: BuildingOrientation = field(default_factory=BuildingOrientation)
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -152,6 +188,14 @@ class BuildingModel:
             raise ValueError(f"Duplicate material id: {material.material_id}")
         self.materials[material.material_id] = material
         return material
+
+    def set_roof(self, roof: Roof) -> Roof:
+        self.roof = roof
+        return roof
+
+    def set_orientation(self, orientation: BuildingOrientation) -> BuildingOrientation:
+        self.orientation = orientation
+        return orientation
 
     @property
     def floor_area(self) -> float:
@@ -184,6 +228,15 @@ class BuildingModel:
                     f"Level overlap: {lower.level_id} reaches {lower.top_elevation} m "
                     f"above next elevation {upper_elevation} m"
                 )
+        if self.roof is not None:
+            if self.roof.length_m and self.levels:
+                max_length = max((level.length_m for level in self.levels.values()), default=0.0)
+                if max_length and self.roof.length_m < max_length:
+                    findings.append("Roof length is smaller than a level footprint length")
+            if self.roof.width_m and self.levels:
+                max_width = max((level.width_m for level in self.levels.values()), default=0.0)
+                if max_width and self.roof.width_m < max_width:
+                    findings.append("Roof width is smaller than a level footprint width")
         for level in self.levels.values():
             if level.floor_plan is not None:
                 findings.extend(level.floor_plan.validate())
