@@ -24,7 +24,6 @@ from lat_ces.scientific.dimensions.dimension import (
     TIME,
     VELOCITY,
     Dimension,
-    canonical_dimension,
 )
 
 
@@ -38,7 +37,7 @@ class Unit:
     def __init__(self, name, symbol, dimension, scale_factor=1.0, offset=0.0, unit_uuid=None, status="DRAFT"):
         if status not in self.VALID_STATUSES:
             raise UnitSKOError(f"Nevažeći status: {status}. Dozvoljeni statusi: {self.VALID_STATUSES}")
-        self._name, self._symbol, self._dimension = name, symbol, canonical_dimension(dimension)
+        self._name, self._symbol, self._dimension = name, symbol, dimension
         self._scale_factor, self._offset = float(scale_factor), float(offset)
         self._uuid, self._status = unit_uuid or str(uuid4()), status
 
@@ -72,8 +71,7 @@ class Unit:
         self._check_affine_safety()
         if isinstance(other, Unit):
             other._check_affine_safety()
-            dimension = canonical_dimension(self.dimension * other.dimension)
-            return Unit(f"({self.name} * {other.name})", f"{self.symbol}·{other.symbol}", dimension, self.scale_factor * other.scale_factor, status="DRAFT")
+            return Unit(f"({self.name} * {other.name})", f"{self.symbol}·{other.symbol}", self.dimension * other.dimension, self.scale_factor * other.scale_factor, status="DRAFT")
         if isinstance(other, (int, float)):
             return Unit(f"Scaled({self.name})", self.symbol, self.dimension, self.scale_factor * float(other), offset=self.offset, status="DRAFT")
         return NotImplemented
@@ -84,23 +82,21 @@ class Unit:
         self._check_affine_safety()
         if isinstance(other, Unit):
             other._check_affine_safety()
-            dimension = canonical_dimension(self.dimension / other.dimension)
-            return Unit(f"({self.name} / {other.name})", f"{self.symbol}/{other.symbol}", dimension, self.scale_factor / other.scale_factor, status="DRAFT")
+            return Unit(f"({self.name} / {other.name})", f"{self.symbol}/{other.symbol}", self.dimension / other.dimension, self.scale_factor / other.scale_factor, status="DRAFT")
         if isinstance(other, (int, float)):
             return Unit(f"Scaled({self.name})", self.symbol, self.dimension, self.scale_factor / float(other), offset=self.offset, status="DRAFT")
         return NotImplemented
 
     def __pow__(self, power):
         self._check_affine_safety()
-        dimension = canonical_dimension(self.dimension ** power)
-        return Unit(f"({self.name}^{power})", f"{self.symbol}^{power}", dimension, float(self.scale_factor ** power), status="DRAFT")
+        return Unit(f"({self.name}^{power})", f"{self.symbol}^{power}", self.dimension ** power, float(self.scale_factor ** power), status="DRAFT")
 
     def __eq__(self, other):
         if not isinstance(other, Unit): return NotImplemented
         return self.symbol == other.symbol and self.dimension == other.dimension and self.scale_factor == other.scale_factor and self.offset == other.offset
 
     def __setattr__(self, name, value):
-        if name in {"_status", "_name", "_symbol", "_dimension", "_scale_factor", "_offset", "_uuid"} and getattr(self, "status", None) == "RELEASED":
+        if name in {"_status", "_name", "_symbol", "_dimension", "_scale_factor", "_offset", "_uuid"} and getattr(self, "_status", None) == "RELEASED":
             raise UnitSKOError("Jedinica u stanju RELEASED je nepromjenjiva i ne može mijenjati parametre.")
         super().__setattr__(name, value)
 
