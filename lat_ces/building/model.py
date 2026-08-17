@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from .floor_plan import FloorPlan
 from .geometry import Box3D
+from .orientation import BuildingOrientation
 
 
 def _id(prefix: str) -> str:
@@ -170,6 +171,7 @@ class BuildingModel:
     levels: dict[str, Level] = field(default_factory=dict)
     materials: dict[str, Material] = field(default_factory=dict)
     roof: Roof | None = None
+    orientation: BuildingOrientation = field(default_factory=BuildingOrientation)
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -190,6 +192,10 @@ class BuildingModel:
     def set_roof(self, roof: Roof) -> Roof:
         self.roof = roof
         return roof
+
+    def set_orientation(self, orientation: BuildingOrientation) -> BuildingOrientation:
+        self.orientation = orientation
+        return orientation
 
     @property
     def floor_area(self) -> float:
