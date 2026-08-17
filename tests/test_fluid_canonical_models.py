@@ -16,7 +16,7 @@ def test_fitting_facade_delegates_to_canonical_model():
     expected = FittingLossModel.compute_pressure_loss(2.0, density, velocity)
     actual = FittingLossEngine.calculate_fitting_loss(2.0, density, velocity)
     assert actual.value == expected.value
-    assert actual.dimension is PRESSURE
+    assert actual.dimension == PRESSURE
 
 
 def test_fan_affinity_facade_delegates_to_canonical_model():
