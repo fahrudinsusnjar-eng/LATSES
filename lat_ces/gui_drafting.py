@@ -17,8 +17,9 @@ class DraftingLATCESApp(EnhancedLATCESApp):
     """Dimension-first drafting: create, preview, place and measure elements."""
 
     def __init__(self) -> None:
-        self.wall_length_var = tk.StringVar(value="3.00")
-        self.wall_thickness_var = tk.StringVar(value="0.20")
+        # Do not create Tk variables here: EnhancedLATCESApp/LATCESApp has not
+        # created the root window yet.  Tk variables are initialized in
+        # _build_side_panel(), which runs after the root exists.
         self.wall_drafting = False
         self.wall_preview_id: int | None = None
         self.wall_draft_length = 3.0
@@ -30,6 +31,10 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         self.canvas.bind("<Motion>", self._draft_motion, add="+")
 
     def _build_side_panel(self, side: ttk.Frame) -> None:
+        # LATCESApp creates the Tk root before this hook is called, so this is
+        # the first safe place to construct these StringVars.
+        self.wall_length_var = tk.StringVar(master=self, value="3.00")
+        self.wall_thickness_var = tk.StringVar(master=self, value="0.20")
         super()._build_side_panel(side)
         box = ttk.LabelFrame(side, text="Dodaj novi zid", padding=8)
         box.pack(fill="x", pady=(10, 0))
