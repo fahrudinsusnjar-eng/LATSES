@@ -1,4 +1,5 @@
 from lat_ces.core.dimensions import DENSITY, FLOW_RATE, PRESSURE, POWER, VELOCITY
+from lat_ces.scientific.dimensions.dimension import canonical_dimension
 from lat_ces.scientific.fan_laws import FanAffinityModel
 from lat_ces.scientific.fittings import FittingLossModel
 from lat_ces.scientific.quantity import PhysicalQuantity
@@ -17,6 +18,7 @@ def test_fitting_facade_delegates_to_canonical_model():
     actual = FittingLossEngine.calculate_fitting_loss(2.0, density, velocity)
     assert actual.value == expected.value
     assert actual.dimension == PRESSURE
+    assert actual.dimension is PRESSURE
 
 
 def test_fan_affinity_facade_delegates_to_canonical_model():
@@ -26,6 +28,11 @@ def test_fan_affinity_facade_delegates_to_canonical_model():
     expected = FanAffinityModel.scale_by_rpm(flow, pressure, power, 1000, 1200)
     actual = FanAffinityEngine.scale_by_rpm(flow, pressure, power, 1000, 1200)
     assert [(q.value, q.dimension) for q in actual] == [(q.value, q.dimension) for q in expected]
+
+
+def test_canonical_dimension_is_interned():
+    assert canonical_dimension(M=1, L=-1, T=-2) is PRESSURE
+    assert canonical_dimension(M=1, L=-3) is DENSITY
 
 
 def test_canonical_models_have_single_public_implementation():
