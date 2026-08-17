@@ -3,6 +3,7 @@
 Canonical physics lives in ``lat_ces.scientific.pressure_drop`` and
 ``lat_ces.scientific.fan_power``. This namespace preserves legacy APIs.
 """
+from lat_ces.core.dimensions import FLOW_RATE, POWER, PRESSURE
 from lat_ces.scientific.fan_power import FanPowerError, FanPowerModel
 from lat_ces.scientific.pressure_drop import PressureDropModel, PressureError
 
@@ -34,6 +35,9 @@ class FanEngine:
 
 
 __all__ = [
+    "FLOW_RATE",
+    "POWER",
+    "PRESSURE",
     "FanEngine",
     "PressureDropEngine",
     "PressureDropModel",
