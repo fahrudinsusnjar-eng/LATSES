@@ -1,15 +1,23 @@
+"""Compatibility facade for the legacy duct-friction module.
+
+Canonical duct-friction execution lives in ``lat_ces.scientific.duct_friction``.
+This module preserves the legacy ``DuctFrictionEngine`` API for existing callers
+while delegating the actual Darcy-Weisbach friction-loss calculation to the
+canonical scientific model.
 """
-LAT-CES Module 016: Duct Friction & Friction Loss Engine
-Dokument: LAT-SCI-MOD-0016
-"""
+
 import math
-from lat_ces.core.dimensions import DENSITY, VELOCITY, LENGTH, DYNAMIC_VISCOSITY
-from lat_ces.modules.quantity import PhysicalQuantity
-from lat_ces.modules.pressure import PRESSURE
+
+from lat_ces.core.dimensions import DENSITY, VELOCITY, LENGTH, DYNAMIC_VISCOSITY, PRESSURE
+from lat_ces.scientific.duct_friction import DuctError, DuctFrictionModel
+from lat_ces.scientific.quantity import PhysicalQuantity
 
 VISCOSITY_AIR = DYNAMIC_VISCOSITY
 
+
 class DuctFrictionEngine:
+    """Legacy adapter around the canonical :class:`DuctFrictionModel`."""
+
     @staticmethod
     def _require_dimension(quantity: PhysicalQuantity, expected, name: str) -> None:
         if quantity.dimension != expected:
@@ -23,31 +31,23 @@ class DuctFrictionEngine:
         density: PhysicalQuantity,
         velocity: PhysicalQuantity,
         hydraulic_diameter: PhysicalQuantity,
-        dynamic_viscosity: PhysicalQuantity
+        dynamic_viscosity: PhysicalQuantity,
     ) -> float:
-        """
-        Računa bezdimenzionalni Reynoldsov broj (Re).
-        """
         cls._require_dimension(density, DENSITY, "density")
         cls._require_dimension(velocity, VELOCITY, "velocity")
         cls._require_dimension(hydraulic_diameter, LENGTH, "hydraulic_diameter")
         cls._require_dimension(dynamic_viscosity, DYNAMIC_VISCOSITY, "dynamic_viscosity")
-        re = (density.value * velocity.value * hydraulic_diameter.value) / dynamic_viscosity.value
-        return re
+        return (
+            density.value * velocity.value * hydraulic_diameter.value
+        ) / dynamic_viscosity.value
 
     @staticmethod
     def estimate_friction_factor(reynolds: float) -> float:
-        """
-        Određuje Darcy-Weisbachov faktor trenja (f).
-        Laminarno (Re < 2300): f = 64 / Re
-        Turbulentno (Re >= 2300): Aproksimacija za glatke kanale f = 0.3164 / Re^0.25 (Blasius)
-        """
         if reynolds <= 0:
             raise ValueError("Reynoldsov broj mora biti pozitivan!")
         if reynolds < 2300.0:
             return 64.0 / reynolds
-        else:
-            return 0.3164 / (reynolds ** 0.25)
+        return 0.3164 / (reynolds ** 0.25)
 
     def calculate_friction_loss(
         self,
@@ -55,28 +55,34 @@ class DuctFrictionEngine:
         length: PhysicalQuantity,
         hydraulic_diameter: PhysicalQuantity,
         density: PhysicalQuantity,
-        velocity: PhysicalQuantity
+        velocity: PhysicalQuantity,
     ) -> PhysicalQuantity:
-        """
-        Računa pad pritiska uslijed trenja u kanalu:
-        delta_P = f * (L / D_h) * (rho * v^2 / 2)
-        """
         self._require_dimension(length, LENGTH, "length")
         self._require_dimension(hydraulic_diameter, LENGTH, "hydraulic_diameter")
         self._require_dimension(density, DENSITY, "density")
         self._require_dimension(velocity, VELOCITY, "velocity")
 
-        dp_value = friction_factor * (length.value / hydraulic_diameter.value) * (density.value * (velocity.value ** 2) / 2.0)
+        canonical = DuctFrictionModel(friction_factor=friction_factor)
+        value = canonical.compute_friction_loss(
+            length_m=length.value,
+            diameter_m=hydraulic_diameter.value,
+            velocity_m_s=velocity.value,
+            air_density=density.value,
+        )
 
+        # Preserve the legacy uncertainty contract while delegating the
+        # actual friction-loss calculation to the canonical scientific model.
         u_rel = math.sqrt(
-            (length.uncertainty / length.value)**2 +
-            (hydraulic_diameter.uncertainty / hydraulic_diameter.value)**2 +
-            (density.uncertainty / density.value)**2 +
-            (2.0 * velocity.uncertainty / velocity.value)**2
+            (length.uncertainty / length.value) ** 2
+            + (hydraulic_diameter.uncertainty / hydraulic_diameter.value) ** 2
+            + (density.uncertainty / density.value) ** 2
+            + (2.0 * velocity.uncertainty / velocity.value) ** 2
+        )
+        return PhysicalQuantity(
+            value=value,
+            dimension=PRESSURE,
+            uncertainty=value * u_rel,
         )
 
-        return PhysicalQuantity(
-            value=dp_value,
-            dimension=PRESSURE,
-            uncertainty=dp_value * u_rel
-        )
+
+__all__ = ["DuctError", "DuctFrictionEngine", "VISCOSITY_AIR"]

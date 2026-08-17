@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAT-CES Technical Product Research Record",
+  "type": "object",
+  "required": ["record_id", "category", "manufacturer", "product", "properties", "sources", "research_boundary"],
+  "properties": {
+    "record_id": {"type": "string"},
+    "category": {
+      "type": "string",
+      "enum": [
+        "building_material",
+        "structural_product",
+        "fan",
+        "heat_pump",
+        "air_handling",
+        "duct",
+        "pipe",
+        "fitting",
+        "valve",
+        "grille",
+        "pump",
+        "hvac_equipment",
+        "electrical_equipment",
+        "cable",
+        "luminaire",
+        "sensor",
+        "other"
+      ]
+    },
+    "manufacturer": {"type": "string"},
+    "product": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "model": {"type": "string"},
+        "family": {"type": "string"},
+        "sku": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value", "unit", "declared_by_manufacturer"],
+        "properties": {
+          "name": {"type": "string"},
+          "value": {},
+          "unit": {"type": "string"},
+          "condition": {"type": "string"},
+          "declared_by_manufacturer": {"const": true},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "url", "retrieved_at"],
+        "properties": {
+          "kind": {"type": "string", "enum": ["manufacturer_page", "technical_datasheet", "installation_manual", "declaration", "catalog", "other"]},
+          "url": {"type": "string", "format": "uri"},
+          "document_id": {"type": "string"},
+          "retrieved_at": {"type": "string", "format": "date"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "research_boundary": {
+      "type": "object",
+      "required": ["informational_only", "engineering_decision_by_ai", "normative_decision_by_ai", "design_value_by_ai"],
+      "properties": {
+        "informational_only": {"const": true},
+        "engineering_decision_by_ai": {"const": false},
+        "normative_decision_by_ai": {"const": false},
+        "design_value_by_ai": {"const": false}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

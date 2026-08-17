@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, Union
 
-from lat_ces.scientific.units.units import Unit, UnitSKOError
+from lat_ces.core.dimensions import Unit, UnitSKOError
 
 
 @dataclass(frozen=True)

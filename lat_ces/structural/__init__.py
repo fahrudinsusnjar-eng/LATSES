@@ -8,6 +8,7 @@ from .model import (
     StructuralNode,
     SupportCondition,
 )
+from .roof import RoofLayer, RoofLoadModel, RoofLoadResult, RoofSpec
 
 __all__ = [
     "StructuralModel",
@@ -16,4 +17,8 @@ __all__ = [
     "SupportCondition",
     "NodalLoad",
     "LoadCase",
+    "RoofLayer",
+    "RoofSpec",
+    "RoofLoadModel",
+    "RoofLoadResult",
 ]

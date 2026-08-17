@@ -25,18 +25,21 @@ from lat_ces.master_pipeline import LATCESMasterSystem
 
 def main():
     print("=== Pokretanje LAT-CES Master Sistema (Moduli 23-27 Integrisani) ===")
-    
+
     governance = ConstitutionalEngine()
     CRITICAL_FILTER_LIMIT = 13.0
     governance.add_axiom(
         "MAX_FILTER_RESISTANCE_AXIOM",
         lambda state: state.get("filter_resistance", 0.0) <= CRITICAL_FILTER_LIMIT
     )
-    
+
     ledger = ProvenanceLedger()
     ingester = TelemetryIngester()
     storage = TimeSeriesStorage()
-    
+
+    # Scientific models remain available to callers that explicitly evaluate
+    # domain options; they are no longer dependencies of LATCESMasterSystem's
+    # runtime constructor/tick.
     plenum_model = PlenumModel(cross_section_area=0.25)
     pressure_model = PressureDropModel(loss_coefficient=1.5, air_density=1.2)
     energy_model = EnergyEfficiencyModel()
@@ -60,7 +63,7 @@ def main():
     K = [[1.5]]
     controller = SimpleLQRController(K_gain=K)
     barrier = SafetyBarrier(min_limit=-15.0, max_limit=15.0)
-    
+
     master_system = LATCESMasterSystem(
         governance=governance,
         ledger=ledger,
@@ -69,24 +72,11 @@ def main():
         controller=controller,
         barrier=barrier,
         storage=storage,
-        plenum_model=plenum_model,
-        pressure_model=pressure_model,
-        energy_model=energy_model,
-        thermal_model=thermal_model,
-        humidity_model=humidity_model,
-        filter_model=filter_model,
-        mass_balance_model=mass_balance_model,
-        fan_curve_model=fan_curve_model,
-        iaq_model=iaq_model,
-        thermal_comfort_model=thermal_comfort_model,
-        duct_loss_model=duct_loss_model,
-        acoustics_model=acoustics_model,
-        energy_cost_model=energy_cost_model
     )
-    
+
     current_state = [2.0]
     control_input = [0.1]
-    
+
     print("\n--- Izvršavanje ciklusa sa termalnom i vlažnosnom analizom ---")
     for i in range(1, 4):
         flow_rate = 0.4 + (i * 0.1)
@@ -117,7 +107,11 @@ def main():
         print(f"Tick {i} -> Corrected state: {metrics['corrected_state']} | Safe action: {metrics['safe_action']}")
 
     # Kada zatreba finansijska analiza (opcija)
-    current_cost = master_system.evaluate_energy_cost_option(power_kw=2.5, duration_hours=4.0)
+    current_cost = master_system.evaluate_energy_cost_option(
+        energy_cost_model,
+        power_kw=2.5,
+        duration_hours=4.0,
+    )
     print(f"Trenutni trošak rada: {current_cost} BAM")
 
     print(f"\n[USPJESNO] Završeno. Ukupno zapisa: {len(ledger.get_history())}")

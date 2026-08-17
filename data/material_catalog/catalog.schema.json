@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAT-CES Manufacturer Material Record",
+  "type": "object",
+  "required": ["record_id", "material_family", "manufacturer", "product", "source", "technical_data", "usage_boundary"],
+  "properties": {
+    "record_id": {"type": "string", "pattern": "^[A-Za-z0-9._-]+$"},
+    "material_family": {"type": "string"},
+    "manufacturer": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "country": {"type": "string"},
+        "official_domain": {"type": "string", "format": "uri"}
+      },
+      "additionalProperties": false
+    },
+    "product": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {"type": "string"},
+        "product_code": {"type": "string"},
+        "variant": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["url", "source_type", "retrieved_at"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "source_type": {"type": "string", "enum": ["manufacturer_page", "manufacturer_datasheet", "manufacturer_declaration", "manufacturer_catalog"]},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "document_title": {"type": "string"},
+        "document_revision": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "technical_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["property", "value", "unit"],
+        "properties": {
+          "property": {"type": "string"},
+          "value": {},
+          "unit": {"type": "string"},
+          "conditions": {"type": "string"},
+          "manufacturer_note": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "usage_boundary": {
+      "type": "object",
+      "required": ["informational_only", "manufacturer_declared"],
+      "properties": {
+        "informational_only": {"const": true},
+        "manufacturer_declared": {"const": true},
+        "normative_decision_by_ai": {"const": false},
+        "engineering_approval_by_ai": {"const": false}
+      },
+      "additionalProperties": false
+    },
+    "notes": {"type": "string"}
+  },
+  "additionalProperties": false
+}

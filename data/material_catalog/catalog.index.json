@@ -1,0 +1,20 @@
+{
+  "catalog_id": "LAT-CES-MATERIAL-CATALOG",
+  "catalog_version": "1.0",
+  "purpose": "manufacturer_informational_input",
+  "read_by": [
+    "structural",
+    "thermal",
+    "hvac",
+    "acoustic",
+    "energy"
+  ],
+  "ai_authority": {
+    "collect_information": true,
+    "choose_material": false,
+    "decide_normative_compliance": false,
+    "approve_engineering_use": false
+  },
+  "records": [],
+  "record_pattern": "materials/*.json"
+}
