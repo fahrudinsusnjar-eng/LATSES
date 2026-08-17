@@ -81,7 +81,7 @@ def test_workflow_level_and_roof_data_survive_json_roundtrip(tmp_path) -> None:
     path = tmp_path / "project.json"
     save_workflow(workflow, path)
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema"] == "LAT-CES-BUILDING-3"
+    assert payload["schema"] == "LAT-CES-BUILDING-4"
 
     restored = load_workflow(path)
     level = next(iter(restored.model.levels.values()))
