@@ -2,6 +2,7 @@ import math
 import pytest
 from lat_ces.core.dimensions import DENSITY, VELOCITY, LENGTH, PRESSURE
 from lat_ces.scientific.quantity import PhysicalQuantity
+from lat_ces.scientific.fittings import FittingLossError
 from lat_ces.modules.fittings import FittingLossEngine
 
 
@@ -24,8 +25,11 @@ def test_fitting_loss_rejects_wrong_density_dimension():
     wrong_rho = PhysicalQuantity(1.2, LENGTH, 0.01)
     v = PhysicalQuantity(4.0, VELOCITY, 0.1)
 
-    with pytest.raises(ValueError, match="density"):
+    with pytest.raises(ValueError, match="density") as exc_info:
         engine.calculate_fitting_loss(0.5, wrong_rho, v)
+
+    assert isinstance(exc_info.value, FittingLossError)
+    assert issubclass(FittingLossError, ValueError)
 
 
 def test_fitting_loss_rejects_wrong_velocity_dimension():
