@@ -35,13 +35,13 @@ jobs:
       - name: Verify desktop application imports
         shell: pwsh
         run: |
-          python -c "import lat_ces.gui; print('LAT-CES GUI import OK')"
+          python -c "import lat_ces.gui_v2; print('LAT-CES Building GUI import OK')"
           pytest -q
 
       - name: Build GUI executable
         shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed --name LATSES lat_ces/gui.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name LATSES lat_ces/gui_v2.py
           if (!(Test-Path '.\dist\LATSES.exe')) { throw 'LATSES.exe was not created' }
           if ((Get-Item '.\dist\LATSES.exe').Length -lt 1000000) { throw 'LATSES.exe is unexpectedly small' }
 

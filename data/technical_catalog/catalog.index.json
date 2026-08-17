@@ -1,0 +1,31 @@
+{
+  "catalog_version": "1.0",
+  "purpose": "Read-only manufacturer-declared technical product information for LAT-CES engineering layers",
+  "schema": "data/technical_catalog/catalog.schema.json",
+  "records": [],
+  "categories": [
+    "building_material",
+    "structural_product",
+    "fan",
+    "heat_pump",
+    "air_handling",
+    "duct",
+    "pipe",
+    "fitting",
+    "valve",
+    "grille",
+    "pump",
+    "hvac_equipment",
+    "electrical_equipment",
+    "cable",
+    "luminaire",
+    "sensor",
+    "other"
+  ],
+  "research_boundary": {
+    "informational_only": true,
+    "engineering_decision_by_ai": false,
+    "normative_decision_by_ai": false,
+    "design_value_by_ai": false
+  }
+}
