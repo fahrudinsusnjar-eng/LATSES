@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from .floor_plan import FloorPlan, Point2D, Segment2D, Wall
 from .geometry3d import LevelGeometry3D, build_geometry
 from .model import BuildingModel, Level, Roof
+from .orientation import BuildingOrientation
 from .project_spec import BuildingProjectSpec, LevelProjectSpec
 
 
@@ -88,8 +89,15 @@ class BuildingWorkflow:
 
     def ensure_project_spec(self) -> BuildingProjectSpec:
         if self.project_spec is None:
-            self.project_spec = BuildingProjectSpec(name=self.model.name)
+            self.project_spec = BuildingProjectSpec(name=self.model.name, orientation=self.model.orientation)
         return self.project_spec
+
+    def set_orientation(self, north_azimuth_deg: float) -> BuildingOrientation:
+        orientation = BuildingOrientation(north_azimuth_deg=north_azimuth_deg)
+        self.model.set_orientation(orientation)
+        project = self.ensure_project_spec()
+        project.orientation = orientation
+        return orientation
 
     def set_floor_plan(self, plan: FloorPlan) -> Level:
         if self.model.levels:
@@ -219,4 +227,5 @@ class BuildingWorkflow:
             "roof": self.roof_shape,
             "roof_type": self.model.roof.roof_type if self.model.roof else None,
             "roof_slope_deg": self.model.roof.slope_deg if self.model.roof else None,
+            "north_azimuth_deg": self.model.orientation.north_azimuth_deg,
         }
