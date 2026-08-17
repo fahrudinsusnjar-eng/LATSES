@@ -21,13 +21,7 @@ from .core import (
     second,
 )
 
-kelvin_interval = Unit(
-    name="kelvin interval",
-    symbol="K",
-    dimension=TEMPERATURE,
-    scale_factor=1.0,
-    offset=0.0,
-)
+kelvin_interval = Unit(name="kelvin interval", symbol="K", dimension=TEMPERATURE, scale_factor=1.0, offset=0.0)
 
 _DERIVED_UNITS = {
     DIMENSIONLESS: Unit("dimensionless", "1", DIMENSIONLESS),
