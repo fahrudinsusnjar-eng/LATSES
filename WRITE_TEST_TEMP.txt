@@ -1,3 +1,0 @@
-LATSES controlled WRITE test
-Date: 2026-08-17
-Purpose: verify GitHub connector file WRITE on a non-main test branch.
