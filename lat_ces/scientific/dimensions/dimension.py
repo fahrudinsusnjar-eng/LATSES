@@ -76,38 +76,4 @@ SPECIFIC_HEAT = (LENGTH**2) / (TIME**2) / TEMPERATURE
 HEAT_RATE = POWER
 DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
 
-# Keep one authoritative object for every canonical dimension.  This gives
-# the scientific API stable identity in addition to structural equality.
-_CANONICAL_DIMENSIONS = (
-    DIMENSIONLESS,
-    LENGTH,
-    MASS,
-    TIME,
-    CURRENT,
-    TEMPERATURE,
-    AMOUNT,
-    LUMINOUS_INTENSITY,
-    VELOCITY,
-    DENSITY,
-    ACCELERATION,
-    FORCE,
-    AREA,
-    FLOW_RATE,
-    MASS_FLOW,
-    PRESSURE,
-    POWER,
-    SPECIFIC_HEAT,
-    HEAT_RATE,
-    DYNAMIC_VISCOSITY,
-)
-
-
-def canonical_dimension(dimension: Dimension) -> Dimension:
-    """Return the authoritative Dimension object equal to *dimension*."""
-    for candidate in _CANONICAL_DIMENSIONS:
-        if candidate == dimension:
-            return candidate
-    return dimension
-
-
 __all__ = [name for name in globals() if not name.startswith("_")]
