@@ -5,7 +5,7 @@ Dokument: LAT-SCI-MOD-0013
 import math
 from typing import List, Union
 
-from lat_ces.modules.quantity import PhysicalQuantity
+from lat_ces.scientific.quantity.quantity import PhysicalQuantity
 from lat_ces.core.dimensions import PRESSURE
 
 # Referentni zvučni pritisak na pragu čujnosti (20 uPa)
