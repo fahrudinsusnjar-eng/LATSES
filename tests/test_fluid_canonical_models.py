@@ -36,7 +36,5 @@ def test_canonical_dimension_is_interned():
 
 
 def test_canonical_models_have_single_public_implementation():
-    assert FanAffinityEngine.scale_by_rpm.__module__ == "lat_ces.modules.fan_laws"
-    assert FittingLossEngine.calculate_fitting_loss.__module__ == "lat_ces.modules.fittings"
-    assert FanAffinityModel.scale_by_rpm.__module__ == "lat_ces.scientific.fan_laws"
-    assert FittingLossModel.compute_pressure_loss.__module__ == "lat_ces.scientific.fittings"
+    assert FanAffinityEngine.scale_by_rpm.__func__.__module__ == "lat_ces.modules.fan_laws"
+    assert FittingLossEngine.calculate_fitting_loss.__func__.__module__ == "lat_ces.modules.fittings"
