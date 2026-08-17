@@ -1,8 +1,7 @@
 """LAT-CES Building-first desktop application.
 
-The user works from one BuildingModel. Each level has its own independent
-floor plan. The editor is dimensional, persistent and ready for downstream
-scientific systems.
+One BuildingModel is the source of truth for roof, levels, floor plans,
+sections and 3-D views.  The GUI only renders and edits that model.
 """
 from __future__ import annotations
 
@@ -15,18 +14,13 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from lat_ces.application.service import analyze_config, export_report, load_config
 from lat_ces.building.floor_plan import FloorPlan, Opening, Point2D, Segment2D, Wall
 from lat_ces.building.geometry3d import build_geometry
-from lat_ces.building.model import BuildingModel
+from lat_ces.building.model import BuildingModel, Level, Roof
+from lat_ces.building.orientation import BuildingOrientation, CardinalDirection, ViewStyle
 from lat_ces.building.project_io import load_workflow, save_workflow
-from lat_ces.building.workflow import BuildingWorkflow, make_square_floor_plan
+from lat_ces.building.section import SectionAxis, SectionDefinition, SectionView
+from lat_ces.building.workflow import BuildingWorkflow, make_blank_floor_plan, make_square_floor_plan
 
-MODE_DESCRIPTIONS = {
-    "Projektovanje": "Tlocrt, dimenzije, zidovi, pregrade i prostorije",
-    "Geometrija": "Visine, etaže i 3D geometrija",
-    "Instalacije": "HVAC, FluidNetwork, voda i električne instalacije",
-    "Konstrukcija": "Opterećenja, statika i mehanika konstrukcija",
-    "Simulacija": "Fluidika, termika, akustika i energija",
-    "Provjera i izvještaj": "Verifikacija, sigurnost i izvještaji",
-}
+STEPS = ((1, "Krov"), (2, "Sprat"), (3, "Tlocrt"), (4, "Presjek"), (5, "3D"))
 EDITOR_TOOLS = (
     ("select", "Izaberi"),
     ("draw", "Nova linija / zid"),
@@ -35,14 +29,6 @@ EDITOR_TOOLS = (
     ("door", "Vrata"),
     ("window", "Prozor"),
 )
-STEPS = ((1, "Tlocrt"), (2, "Visina / spratnost"), (3, "Otvori"), (4, "3D model"))
-
-
-def new_workflow() -> BuildingWorkflow:
-    model = BuildingModel(name="Novi objekat")
-    workflow = BuildingWorkflow(model=model)
-    workflow.set_floor_plan(make_square_floor_plan("Prizemlje", 10.0))
-    return workflow
 
 
 class FloorPlanEditor:
@@ -56,14 +42,6 @@ class FloorPlanEditor:
     @property
     def floor_plan(self) -> FloorPlan:
         return self.app.workflow.floor_plan
-
-    def set_tool(self, tool: str) -> None:
-        self.tool = tool
-        self.start_point = None
-        self.drag_last = None
-        self.app.tool_var.set(tool)
-        self.app.status_var.set(f"Alat: {dict(EDITOR_TOOLS)[tool]}")
-        self.app.redraw_active_view()
 
     @staticmethod
     def snap(point: Point2D) -> Point2D:
@@ -90,13 +68,22 @@ class FloorPlanEditor:
                 best = (distance, wall)
         return best[1] if best else None
 
+    def set_tool(self, tool: str) -> None:
+        self.tool = tool
+        self.start_point = None
+        self.drag_last = None
+        self.app.tool_var.set(tool)
+        self.app.status_var.set(f"Alat: {dict(EDITOR_TOOLS)[tool]}")
+        self.app.redraw_active_view()
+
     def click(self, event: tk.Event) -> None:
+        if self.app.view_step.get() != 3:
+            return
         point = self.snap(self.app.canvas_to_model(event.x, event.y))
         if self.tool == "draw":
             if self.start_point is None:
                 self.start_point = point
                 self.app.status_var.set(f"Početak zida: ({point.x:.1f}, {point.y:.1f}) m — klikni kraj")
-                self.app.redraw_active_view()
                 return
             if math.hypot(point.x - self.start_point.x, point.y - self.start_point.y) < 0.1:
                 return
@@ -108,8 +95,7 @@ class FloorPlanEditor:
             self.floor_plan.add_wall(wall)
             self.start_point = None
             self.selected_wall_id = wall.wall_id
-            self.app.refresh_plan()
-            self.app.status_var.set(f"Dodan zid {wall.name}: {wall.segment.length:.2f} m")
+            self.app.refresh_view()
             return
 
         wall = self.nearest_wall(point)
@@ -122,17 +108,15 @@ class FloorPlanEditor:
         if self.tool == "delete":
             del self.floor_plan.walls[wall.wall_id]
             self.selected_wall_id = None
-            self.app.refresh_plan()
-            self.app.status_var.set(f"Obrisan: {wall.name}")
         elif self.tool in {"door", "window"}:
             self.add_opening(wall, point, self.tool)
         else:
             self.app.update_selected_wall()
-            self.app.redraw_active_view()
             self.app.status_var.set(f"Izabran: {wall.name} — {wall.segment.length:.2f} m")
+        self.app.refresh_view()
 
     def begin_drag(self, event: tk.Event) -> None:
-        if self.tool != "move":
+        if self.app.view_step.get() != 3 or self.tool != "move":
             return
         point = self.snap(self.app.canvas_to_model(event.x, event.y))
         wall = self.nearest_wall(point)
@@ -142,10 +126,9 @@ class FloorPlanEditor:
             return
         self.selected_wall_id = wall.wall_id
         self.drag_last = point
-        self.app.update_selected_wall()
 
     def drag(self, event: tk.Event) -> None:
-        if self.tool != "move" or self.selected_wall_id is None or self.drag_last is None:
+        if self.app.view_step.get() != 3 or self.tool != "move" or self.selected_wall_id is None or self.drag_last is None:
             return
         wall = self.floor_plan.walls.get(self.selected_wall_id)
         if wall is None:
@@ -157,7 +140,7 @@ class FloorPlanEditor:
             Point2D(wall.segment.end.x + dx, wall.segment.end.y + dy),
         )
         self.drag_last = point
-        self.app.refresh_plan()
+        self.app.refresh_view()
 
     def end_drag(self, _event: tk.Event) -> None:
         self.drag_last = None
@@ -170,11 +153,7 @@ class FloorPlanEditor:
         offset = max(0.0, min(length, projection * length))
         default_width = 0.90 if kind == "door" else 1.20
         width = simpledialog.askfloat(
-            "Otvor",
-            f"Širina {kind} (m):",
-            initialvalue=default_width,
-            minvalue=0.10,
-            parent=self.app,
+            "Otvor", f"Širina {kind} (m):", initialvalue=default_width, minvalue=0.10, parent=self.app
         )
         if width is None:
             return
@@ -183,61 +162,80 @@ class FloorPlanEditor:
             wall.add_opening(Opening(kind=kind, offset=offset, width=width))
         except ValueError as exc:
             messagebox.showwarning("LAT-CES", str(exc), parent=self.app)
-            return
-        self.app.refresh_plan()
-        self.app.status_var.set(f"Dodan otvor: {kind} / {width:.2f} m")
 
 
 class LATCESApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("LAT-CES — Building Model")
-        self.geometry("1360x850")
-        self.minsize(1150, 740)
-        self.workflow = new_workflow()
+        self.geometry("1440x900")
+        self.minsize(1180, 760)
+        self.workflow = self.new_workflow()
+        self.view_step = tk.IntVar(value=1)
         self.active_mode = tk.StringVar(value="Projektovanje")
         self.tool_var = tk.StringVar(value="select")
-        self.step_var = tk.IntVar(value=1)
         self.height_var = tk.StringVar(value="2.80")
+        self.level_length_var = tk.StringVar(value="10.00")
+        self.level_width_var = tk.StringVar(value="10.00")
+        self.roof_type_var = tk.StringVar(value="Četverovodni")
+        self.roof_construction_var = tk.StringVar(value="Drvena konstrukcija")
+        self.roof_covering_var = tk.StringVar(value="Crijep")
+        self.roof_substructure_var = tk.StringVar(value="Letve + kontra-letve")
+        self.roof_support_var = tk.StringVar(value="Krovna ploča / vijenci")
+        self.roof_slope_var = tk.StringVar(value="25.0")
+        self.roof_height_var = tk.StringVar(value="2.50")
+        self.orientation_var = tk.StringVar(value="0.0")
+        self.section_axis_var = tk.StringVar(value="X")
+        self.section_position_var = tk.StringVar(value="5.0")
+        self.view_style_var = tk.StringVar(value=ViewStyle.CONSTRUCTIONAL_LINE.value)
         self.model_path = tk.StringVar()
-        self.status_var = tk.StringVar(value="Korak 1 — početni tlocrt 10 × 10 m")
+        self.status_var = tk.StringVar(value="LAT-CES — Building-first interfejs")
         self.selected_length_var = tk.StringVar(value="—")
         self.selected_thickness_var = tk.StringVar(value="0.20")
         self.editor = FloorPlanEditor(self)
         self._build_ui()
-        self.redraw_active_view()
+        self.apply_default_orientation()
+        self.configure_stage(1)
+        self.refresh_view()
+
+    @staticmethod
+    def new_workflow() -> BuildingWorkflow:
+        model = BuildingModel(name="Novi objekat")
+        workflow = BuildingWorkflow(model=model)
+        workflow.set_floor_plan(make_square_floor_plan("Prizemlje", 10.0))
+        return workflow
+
+    def apply_default_orientation(self) -> None:
+        if getattr(self.workflow.model, "orientation", None) is None:
+            self.workflow.model.set_orientation(BuildingOrientation(north_azimuth_deg=float(self.orientation_var.get())))
+        else:
+            self.orientation_var.set(f"{self.workflow.model.orientation.north_azimuth_deg:.1f}")
 
     @property
     def floor_plan(self) -> FloorPlan:
         return self.workflow.floor_plan
 
     @property
-    def active_level(self):
+    def active_level(self) -> Level:
         return self.workflow.active_level
 
     def _build_ui(self) -> None:
         header = ttk.Frame(self, padding=(18, 12))
         header.pack(fill="x")
-        ttk.Label(header, text="LAT-CES", font=("Segoe UI", 21, "bold")).pack(side="left")
-        ttk.Label(header, text="Building Model", font=("Segoe UI", 11)).pack(side="left", padx=(14, 0), pady=(5, 0))
-        ttk.Button(header, text="Učitaj konfiguraciju…", command=self.load_project).pack(side="right")
-        ttk.Button(header, text="Sačuvaj konfiguraciju", command=self.save_project).pack(side="right", padx=8)
-        ttk.Button(header, text="Novi projekat", command=self.new_project).pack(side="right")
+        ttk.Label(header, text="LAT-CES", font=("Segoe UI", 22, "bold")).pack(side="left")
+        ttk.Label(header, text="Building Model · Structural / Natural Views", font=("Segoe UI", 10)).pack(side="left", padx=(14, 0), pady=(7, 0))
+        ttk.Button(header, text="Učitaj", command=self.load_project).pack(side="right")
+        ttk.Button(header, text="Sačuvaj", command=self.save_project).pack(side="right", padx=7)
+        ttk.Button(header, text="Novi", command=self.new_project).pack(side="right")
 
         steps = ttk.Frame(self, padding=(18, 0, 18, 10))
         steps.pack(fill="x")
         for number, title in STEPS:
-            ttk.Radiobutton(
-                steps,
-                text=f"{number}. {title}",
-                value=number,
-                variable=self.step_var,
-                command=self.goto_step,
-            ).pack(side="left", padx=(0, 18))
+            ttk.Radiobutton(steps, text=f"{number}. {title}", value=number, variable=self.view_step, command=self.goto_step).pack(side="left", padx=(0, 16))
 
         body = ttk.Frame(self, padding=(18, 0, 18, 12))
         body.pack(fill="both", expand=True)
-        self.workspace = ttk.LabelFrame(body, text="Tlocrt", padding=8)
+        self.workspace = ttk.LabelFrame(body, text="LAT-CES", padding=8)
         self.workspace.pack(side="left", fill="both", expand=True)
 
         toolbar = ttk.Frame(self.workspace)
@@ -247,16 +245,10 @@ class LATCESApp(tk.Tk):
         self.level_box = ttk.Combobox(toolbar, textvariable=self.level_var, state="readonly", width=18)
         self.level_box.pack(side="left", padx=6)
         self.level_box.bind("<<ComboboxSelected>>", self.select_level_from_combo)
-        ttk.Label(toolbar, text="|  Uređivanje:").pack(side="left", padx=(8, 0))
+        ttk.Label(toolbar, text="|  Alati:").pack(side="left", padx=(10, 0))
         for tool, label in EDITOR_TOOLS:
-            ttk.Radiobutton(
-                toolbar,
-                text=label,
-                value=tool,
-                variable=self.tool_var,
-                command=lambda value=tool: self.editor.set_tool(value),
-            ).pack(side="left", padx=(6, 0))
-        ttk.Label(toolbar, text="Snap 0.10 m", foreground="#5f6368").pack(side="right")
+            ttk.Radiobutton(toolbar, text=label, value=tool, variable=self.tool_var, command=lambda value=tool: self.editor.set_tool(value)).pack(side="left", padx=(5, 0))
+        ttk.Label(toolbar, textvariable=self.orientation_summary, foreground="#4b5563") if hasattr(self, "orientation_summary") else None
 
         self.canvas = tk.Canvas(self.workspace, background="white", highlightthickness=1, highlightbackground="#cfd4da")
         self.canvas.pack(fill="both", expand=True)
@@ -266,29 +258,37 @@ class LATCESApp(tk.Tk):
         self.canvas.bind("<B1-Motion>", self.editor.drag)
         self.canvas.bind("<ButtonRelease-1>", self.editor.end_drag)
 
-        side = ttk.Frame(body, width=350)
+        side = ttk.Frame(body, width=360)
         side.pack(side="left", fill="y", padx=(14, 0))
         side.pack_propagate(False)
         self._build_side_panel(side)
         ttk.Label(self, textvariable=self.status_var, relief="sunken", anchor="w").pack(fill="x")
 
     def _build_side_panel(self, side: ttk.Frame) -> None:
-        mode_box = ttk.LabelFrame(side, text="Režim rada", padding=10)
-        mode_box.pack(fill="x")
-        for mode in MODE_DESCRIPTIONS:
-            ttk.Button(mode_box, text=mode, command=lambda value=mode: self.select_mode(value)).pack(fill="x", pady=3)
+        nav = ttk.LabelFrame(side, text="Prikaz / faza", padding=10)
+        nav.pack(fill="x")
+        for mode, label in (("Krov", "Krov"), ("Sprat", "Sprat"), ("Tlocrt", "Tlocrt"), ("Presjek", "Presjek"), ("3D", "3D")):
+            ttk.Button(nav, text=label, command=lambda text=mode: self.jump_to_label(text)).pack(fill="x", pady=2)
 
-        step_box = ttk.LabelFrame(side, text="Trenutni korak", padding=10)
-        step_box.pack(fill="x", pady=(14, 0))
-        self.step_title = ttk.Label(step_box, text="1. Tlocrt", font=("Segoe UI", 14, "bold"))
-        self.step_title.pack(anchor="w")
-        self.step_info = ttk.Label(step_box, text="Početni kvadrat 10 × 10 m. Dodaj, pomjeraj i mijenjaj zidove.", wraplength=305)
-        self.step_info.pack(anchor="w", pady=(4, 8))
-        self.step_controls = ttk.Frame(step_box)
-        self.step_controls.pack(fill="x")
+        stage = ttk.LabelFrame(side, text="Trenutna faza", padding=10)
+        stage.pack(fill="x", pady=(10, 0))
+        self.stage_title = ttk.Label(stage, text="Krov", font=("Segoe UI", 14, "bold"))
+        self.stage_title.pack(anchor="w")
+        self.stage_info = ttk.Label(stage, wraplength=320)
+        self.stage_info.pack(anchor="w", pady=(4, 8))
+        self.stage_controls = ttk.Frame(stage)
+        self.stage_controls.pack(fill="x")
+
+        orientation = ttk.LabelFrame(side, text="Orijentacija objekta", padding=10)
+        orientation.pack(fill="x", pady=(10, 0))
+        ttk.Label(orientation, text="Sjeverni azimut (°)").grid(row=0, column=0, sticky="w")
+        ttk.Entry(orientation, textvariable=self.orientation_var, width=12).grid(row=0, column=1, padx=(8, 0))
+        ttk.Button(orientation, text="Primijeni", command=self.apply_orientation).grid(row=0, column=2, padx=(8, 0))
+        self.orientation_info = ttk.Label(orientation, wraplength=320)
+        self.orientation_info.grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
 
         selected = ttk.LabelFrame(side, text="Odabrani zid", padding=10)
-        selected.pack(fill="x", pady=(14, 0))
+        selected.pack(fill="x", pady=(10, 0))
         ttk.Label(selected, text="Dužina (m)").grid(row=0, column=0, sticky="w")
         ttk.Entry(selected, textvariable=self.selected_length_var).grid(row=0, column=1, sticky="ew", padx=(8, 0))
         ttk.Label(selected, text="Debljina (m)").grid(row=1, column=0, sticky="w", pady=(6, 0))
@@ -297,18 +297,95 @@ class LATCESApp(tk.Tk):
         selected.columnconfigure(1, weight=1)
 
         model_box = ttk.LabelFrame(side, text="Building Model", padding=10)
-        model_box.pack(fill="x", pady=(14, 0))
-        self.summary_text = tk.Text(model_box, height=8, width=38, wrap="word", state="disabled")
+        model_box.pack(fill="x", pady=(10, 0))
+        self.summary_text = tk.Text(model_box, height=9, width=40, wrap="word", state="disabled")
         self.summary_text.pack(fill="x")
 
         tools = ttk.LabelFrame(side, text="LAT-CES alati", padding=10)
-        tools.pack(fill="x", pady=(14, 0))
+        tools.pack(fill="x", pady=(10, 0))
         ttk.Button(tools, text="Provjeri model", command=self.validate_model).pack(fill="x")
-        ttk.Button(tools, text="Scientific Analysis", command=self.open_analysis).pack(fill="x", pady=6)
+        ttk.Button(tools, text="Scientific Analysis", command=self.open_analysis).pack(fill="x", pady=4)
         ttk.Button(tools, text="Sačuvaj konfiguraciju", command=self.save_project).pack(fill="x")
-        ttk.Label(side, text="Svaka etaža ima svoj FloorPlan. Raspored na spratu može biti potpuno drugačiji.", wraplength=305, foreground="#5f6368").pack(anchor="w", pady=(16, 0))
-        self.refresh_level_combo()
-        self.configure_step(1)
+
+    def jump_to_label(self, label: str) -> None:
+        mapping = {title: number for number, title in STEPS}
+        self.view_step.set(mapping[label])
+        self.goto_step()
+
+    def configure_stage(self, step: int) -> None:
+        for child in self.stage_controls.winfo_children():
+            child.destroy()
+        self.stage_title.configure(text=dict(STEPS)[step])
+        if step == 1:
+            self.workspace.configure(text="Krov")
+            self.stage_info.configure(text="Definiši krov kao dio Building Modela: tip, konstrukcija, pokrov, oslonac, dimenzije, nagib i visinu.")
+            fields = (
+                ("Vrsta", self.roof_type_var), ("Konstrukcija", self.roof_construction_var),
+                ("Pokrov", self.roof_covering_var), ("Podkonstrukcija", self.roof_substructure_var),
+                ("Oslonac", self.roof_support_var), ("Nagib (°)", self.roof_slope_var), ("Visina (m)", self.roof_height_var),
+            )
+            for row, (label, var) in enumerate(fields):
+                ttk.Label(self.stage_controls, text=label).grid(row=row, column=0, sticky="w", pady=2)
+                ttk.Entry(self.stage_controls, textvariable=var, width=24).grid(row=row, column=1, sticky="ew", padx=(8, 0), pady=2)
+            ttk.Label(self.stage_controls, text="Tlocrt krova koristi aktivne dimenzije etaže.", wraplength=320).grid(row=len(fields), column=0, columnspan=2, sticky="w", pady=(6, 2))
+            ttk.Button(self.stage_controls, text="Primijeni krov", command=self.apply_roof).grid(row=len(fields) + 1, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+            self.stage_controls.columnconfigure(1, weight=1)
+        elif step == 2:
+            self.workspace.configure(text="Sprat / etaža")
+            self.stage_info.configure(text="Etaža definiše naziv, visinu, tlocrtni gabarit, zidnu konstrukciju, izolaciju, obloge i stolariju.")
+            fields = (("Naziv", tk.StringVar(value=self.active_level.name)), ("Visina (m)", self.height_var), ("Dužina (m)", self.level_length_var), ("Širina (m)", self.level_width_var))
+            self.level_name_var = fields[0][1]
+            for row, (label, var) in enumerate(fields):
+                ttk.Label(self.stage_controls, text=label).grid(row=row, column=0, sticky="w", pady=2)
+                ttk.Entry(self.stage_controls, textvariable=var).grid(row=row, column=1, sticky="ew", padx=(8, 0), pady=2)
+            ttk.Button(self.stage_controls, text="Primijeni etažu", command=self.apply_level_spec).grid(row=4, column=0, columnspan=2, sticky="ew", pady=(6, 2))
+            ttk.Button(self.stage_controls, text="Dodaj novu etažu", command=self.add_level).grid(row=5, column=0, columnspan=2, sticky="ew")
+            self.stage_controls.columnconfigure(1, weight=1)
+        elif step == 3:
+            self.workspace.configure(text=f"Tlocrt — {self.active_level.name}")
+            self.stage_info.configure(text="Dimenzionalni tlocrt je geometrijska osnova za Presjek i 3D. Koristi samo jedan FloorPlan izvora.")
+            ttk.Button(self.stage_controls, text="Nova pregrada / zid", command=lambda: self.editor.set_tool("draw")).pack(fill="x", pady=2)
+            ttk.Button(self.stage_controls, text="Vrata", command=lambda: self.editor.set_tool("door")).pack(fill="x", pady=2)
+            ttk.Button(self.stage_controls, text="Prozor", command=lambda: self.editor.set_tool("window")).pack(fill="x", pady=2)
+        elif step == 4:
+            self.workspace.configure(text="Presjek")
+            self.stage_info.configure(text="Presjek je izveden iz istog Building Modela. Prikaz: konstrukcijski linijski ili prirodni.")
+            row = ttk.Frame(self.stage_controls)
+            row.pack(fill="x", pady=2)
+            ttk.Label(row, text="Pravac:").pack(side="left")
+            ttk.Combobox(row, textvariable=self.section_axis_var, state="readonly", values=("X", "Y"), width=5).pack(side="left", padx=8)
+            ttk.Label(row, text="Položaj (m):").pack(side="left")
+            ttk.Entry(row, textvariable=self.section_position_var, width=8).pack(side="left", padx=6)
+            ttk.Label(self.stage_controls, text="Stil:").pack(anchor="w", pady=(6, 2))
+            ttk.Radiobutton(self.stage_controls, text="Konstrukcijski linijski", value=ViewStyle.CONSTRUCTIONAL_LINE.value, variable=self.view_style_var, command=self.redraw_active_view).pack(anchor="w")
+            ttk.Radiobutton(self.stage_controls, text="Prirodni", value=ViewStyle.NATURAL.value, variable=self.view_style_var, command=self.redraw_active_view).pack(anchor="w")
+            ttk.Button(self.stage_controls, text="Prikaži presjek", command=self.redraw_active_view).pack(fill="x", pady=(8, 0))
+        else:
+            self.workspace.configure(text="3D Building Model")
+            self.stage_info.configure(text="3D se generiše iz svih etaža i krovnog modela. Može biti konstrukcijski linijski ili prirodni.")
+            ttk.Radiobutton(self.stage_controls, text="3D linijski", value=ViewStyle.CONSTRUCTIONAL_LINE.value, variable=self.view_style_var, command=self.redraw_active_view).pack(anchor="w")
+            ttk.Radiobutton(self.stage_controls, text="Prirodni 3D", value=ViewStyle.NATURAL.value, variable=self.view_style_var, command=self.redraw_active_view).pack(anchor="w")
+            ttk.Button(self.stage_controls, text="Osvježi 3D", command=self.redraw_active_view).pack(fill="x", pady=(8, 0))
+
+    def goto_step(self) -> None:
+        step = self.view_step.get()
+        if step == 1:
+            self.configure_stage(1)
+        elif step == 2:
+            self.refresh_level_fields()
+            self.configure_stage(2)
+        elif step == 3:
+            self.configure_stage(3)
+        elif step == 4:
+            self.configure_stage(4)
+        else:
+            self.configure_stage(5)
+        self.refresh_view()
+
+    def refresh_level_fields(self) -> None:
+        self.height_var.set(f"{self.active_level.height:.2f}")
+        self.level_length_var.set(f"{self.active_level.length_m or 10.0:.2f}")
+        self.level_width_var.set(f"{self.active_level.width_m or 10.0:.2f}")
 
     def refresh_level_combo(self) -> None:
         levels = list(self.workflow.model.levels.values())
@@ -316,7 +393,7 @@ class LATCESApp(tk.Tk):
         active_index = next((idx for idx, level in enumerate(levels) if level.level_id == self.workflow.active_level_id), 0)
         if levels:
             self.level_box.current(active_index)
-        self.height_var.set(f"{self.active_level.height:.2f}")
+        self.refresh_level_fields()
 
     def select_level_from_combo(self, _event: tk.Event) -> None:
         index = self.level_box.current()
@@ -325,10 +402,93 @@ class LATCESApp(tk.Tk):
             self.workflow.set_active_level(levels[index].level_id)
             self.editor.selected_wall_id = None
             self.update_selected_wall()
-            self.height_var.set(f"{self.active_level.height:.2f}")
+            self.refresh_level_fields()
+            self.configure_stage(self.view_step.get())
+            self.refresh_view()
             self.status_var.set(f"Aktivna etaža: {self.active_level.name}")
-            self.redraw_active_view()
-            self.update_summary()
+
+    def apply_orientation(self) -> None:
+        try:
+            azimuth = float(self.orientation_var.get()) % 360.0
+            self.workflow.model.set_orientation(BuildingOrientation(north_azimuth_deg=azimuth))
+        except ValueError as exc:
+            messagebox.showwarning("LAT-CES", str(exc), parent=self)
+            return
+        self.update_orientation_info()
+        self.refresh_view()
+
+    def update_orientation_info(self) -> None:
+        orientation = self.workflow.model.orientation
+        self.orientation_info.configure(
+            text=(f"N {orientation.north_azimuth_deg:.1f}° · E {orientation.east_azimuth_deg:.1f}° · "
+                  f"S {orientation.south_azimuth_deg:.1f}° · W {orientation.west_azimuth_deg:.1f}°")
+        )
+
+    def apply_roof(self) -> None:
+        try:
+            roof = self.workflow.set_roof(
+                self.roof_type_var.get().strip(),
+                float(self.roof_height_var.get()),
+                construction=self.roof_construction_var.get().strip(),
+                covering=self.roof_covering_var.get().strip(),
+                substructure=self.roof_substructure_var.get().strip(),
+                support=self.roof_support_var.get().strip(),
+                length_m=float(self.active_level.length_m or self.level_length_var.get()),
+                width_m=float(self.active_level.width_m or self.level_width_var.get()),
+                slope_deg=float(self.roof_slope_var.get()),
+            )
+        except ValueError as exc:
+            messagebox.showwarning("LAT-CES — Krov", str(exc), parent=self)
+            return
+        self.status_var.set(f"Krov primijenjen: {roof.roof_type}, nagib {roof.slope_deg:.1f}°")
+        self.refresh_view()
+
+    def apply_level_spec(self) -> None:
+        try:
+            name = self.level_name_var.get().strip()
+            height = float(self.height_var.get())
+            length = float(self.level_length_var.get())
+            width = float(self.level_width_var.get())
+            if not name or height <= 0 or length <= 0 or width <= 0:
+                raise ValueError("Naziv i sve dimenzije etaže moraju biti pozitivne")
+            level = self.active_level
+            level.name = name
+            level.height = height
+            level.length_m = length
+            level.width_m = width
+            if not level.floor_plan.walls:
+                level.set_floor_plan(make_square_floor_plan(name, max(length, width)))
+            else:
+                level.floor_plan.name = name
+        except ValueError as exc:
+            messagebox.showwarning("LAT-CES — Etaža", str(exc), parent=self)
+            return
+        self.refresh_level_combo()
+        self.status_var.set(f"Etaža primijenjena: {name} · {length:.2f} × {width:.2f} × {height:.2f} m")
+        self.refresh_view()
+
+    def add_level(self) -> None:
+        try:
+            height = float(self.height_var.get() or 2.80)
+            length = float(self.level_length_var.get() or 10.0)
+            width = float(self.level_width_var.get() or 10.0)
+            if height <= 0 or length <= 0 or width <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("LAT-CES", "Dimenzije etaže moraju biti pozitivne.", parent=self)
+            return
+        levels = list(self.workflow.model.levels.values())
+        previous = levels[-1] if levels else None
+        elevation = previous.top_elevation if previous else 0.0
+        number = len(levels) + 1
+        level = Level(name=f"Etaža {number}", elevation=elevation, height=height, length_m=length, width_m=width, floor_plan=make_square_floor_plan(f"Etaža {number}", max(length, width)))
+        self.workflow.model.add_level(level)
+        self.workflow.active_level_id = level.level_id
+        self.refresh_level_combo()
+        self.view_step.set(2)
+        self.configure_stage(2)
+        self.refresh_view()
+        self.status_var.set(f"Dodana {level.name}")
 
     def canvas_to_model(self, x: float, y: float) -> Point2D:
         width = max(self.canvas.winfo_width(), 400)
@@ -358,69 +518,165 @@ class LATCESApp(tk.Tk):
             return 0.0, 10.0, 0.0, 10.0
         xs = [p.x for p in points]
         ys = [p.y for p in points]
-        padding = 1.0
-        return min(xs) - padding, max(xs) + padding, min(ys) - padding, max(ys) + padding
+        pad = 1.0
+        return min(xs) - pad, max(xs) + pad, min(ys) - pad, max(ys) + pad
+
+    def draw_compass(self) -> None:
+        orientation = self.workflow.model.orientation
+        width = max(self.canvas.winfo_width(), 400)
+        cx, cy, radius = width - 70, 70, 32
+        angle = math.radians(-orientation.north_azimuth_deg + 90.0)
+        nx, ny = cx + radius * math.cos(angle), cy - radius * math.sin(angle)
+        self.canvas.create_oval(cx - radius, cy - radius, cx + radius, cy + radius, outline="#6b7280", width=2)
+        self.canvas.create_line(cx, cy, nx, ny, arrow=tk.LAST, width=3)
+        self.canvas.create_text(cx, cy + radius + 12, text=f"N {orientation.north_azimuth_deg:.1f}°", fill="#374151")
+        self.canvas.create_text(cx, cy - radius - 12, text="N", fill="#111827", font=("Segoe UI", 10, "bold"))
 
     def draw_floor_plan(self) -> None:
         self.canvas.delete("all")
-        xmin, xmax, ymin, ymax = self.plan_bounds()
         width = max(self.canvas.winfo_width(), 400)
         height = max(self.canvas.winfo_height(), 300)
-        margin = 80
-        scale = min((width - 2 * margin) / max(xmax - xmin, 1.0), (height - 2 * margin) / max(ymax - ymin, 1.0))
+        xmin, xmax, ymin, ymax = self.plan_bounds()
         for x in range(math.floor(xmin), math.ceil(xmax) + 1):
             px, _ = self.model_to_canvas(Point2D(float(x), 0.0))
             self.canvas.create_line(px, 0, px, height, fill="#edf0f2")
         for y in range(math.floor(ymin), math.ceil(ymax) + 1):
             _, py = self.model_to_canvas(Point2D(0.0, float(y)))
             self.canvas.create_line(0, py, width, py, fill="#edf0f2")
-
         for wall in self.floor_plan.walls.values():
             x1, y1 = self.model_to_canvas(wall.segment.start)
             x2, y2 = self.model_to_canvas(wall.segment.end)
             selected = wall.wall_id == self.editor.selected_wall_id
-            self.canvas.create_line(x1, y1, x2, y2, width=10 if selected else 7, fill="#111827" if not selected else "#2563eb")
-            mx, my = (x1 + x2) / 2, (y1 + y2) / 2
-            self.canvas.create_text(mx, my - 10, text=f"{wall.segment.length:.2f} m", fill="#374151", font=("Segoe UI", 9, "bold"))
+            self.canvas.create_line(x1, y1, x2, y2, width=10 if selected else 7, fill="#2563eb" if selected else "#111827")
+            self.canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2 - 10, text=f"{wall.segment.length:.2f} m", fill="#374151")
             for opening in wall.openings:
                 t1 = opening.offset / wall.segment.length
                 t2 = (opening.offset + opening.width) / wall.segment.length
-                ox1 = x1 + (x2 - x1) * t1
-                oy1 = y1 + (y2 - y1) * t1
-                ox2 = x1 + (x2 - x1) * t2
-                oy2 = y1 + (y2 - y1) * t2
-                self.canvas.create_line(ox1, oy1, ox2, oy2, width=10, fill="#ffffff")
+                ox1, oy1 = x1 + (x2 - x1) * t1, y1 + (y2 - y1) * t1
+                ox2, oy2 = x1 + (x2 - x1) * t2, y1 + (y2 - y1) * t2
+                self.canvas.create_line(ox1, oy1, ox2, oy2, width=10, fill="white")
                 self.canvas.create_text((ox1 + ox2) / 2, (oy1 + oy2) / 2 + 12, text=f"{opening.kind} {opening.width:.2f} m", fill="#4b5563", font=("Segoe UI", 8))
+        self.draw_compass()
+        self.canvas.create_text(20, height - 20, text=f"Etaža: {self.active_level.name}", anchor="sw", fill="#5f6368")
 
-        self.canvas.create_text(width - 20, 20, text="Sjever ↑", anchor="ne", fill="#5f6368")
-        self.canvas.create_text(20, height - 20, text=f"Aktivna etaža: {self.active_level.name}", anchor="sw", fill="#5f6368")
+    def draw_section(self) -> None:
+        self.canvas.delete("all")
+        try:
+            axis = SectionAxis(self.section_axis_var.get())
+            position = float(self.section_position_var.get())
+        except ValueError:
+            messagebox.showwarning("LAT-CES", "Pravac presjeka i položaj nisu validni.", parent=self)
+            return
+        style = ViewStyle(self.view_style_var.get())
+        geometries = build_geometry(self.workflow.model)
+        section = SectionView(SectionDefinition(axis=axis, position_m=position, style=style), geometries)
+        width = max(self.canvas.winfo_width(), 500)
+        height = max(self.canvas.winfo_height(), 350)
+        if not geometries:
+            return
+        total_h = sum(g.height for g in geometries) + (self.workflow.model.roof.height_m if self.workflow.model.roof else 0.0)
+        scale_x = (width - 120) / max(max((w.x2 for g in geometries for w in g.walls), default=10.0), 10.0)
+        scale_y = (height - 100) / max(total_h, 3.0)
+        scale = min(scale_x, scale_y)
+        base_y = height - 55
+        if section.is_line_based:
+            for idx, geometry in enumerate(geometries):
+                z0 = sum(g.height for g in geometries[:idx])
+                for wall in geometry.walls:
+                    if axis is SectionAxis.X:
+                        coord = wall.x1
+                        if abs(coord - position) > max(wall.thickness, 0.25):
+                            continue
+                        span = max(abs(wall.y2 - wall.y1), wall.length)
+                    else:
+                        coord = wall.y1
+                        if abs(coord - position) > max(wall.thickness, 0.25):
+                            continue
+                        span = max(abs(wall.x2 - wall.x1), wall.length)
+                    x0 = 70
+                    x1 = x0 + span * scale
+                    y0 = base_y - z0 * scale
+                    y1 = y0 - wall.height * scale
+                    self.canvas.create_rectangle(x0, y1, x1, y0, outline="#111827", width=2)
+            self.canvas.create_text(20, 20, text=f"KONSTRUKCIJSKI LINIJSKI PRESJEK · {axis.value} · {position:.2f} m", anchor="nw", fill="#111827", font=("Segoe UI", 12, "bold"))
+        else:
+            for idx, geometry in enumerate(geometries):
+                z0 = sum(g.height for g in geometries[:idx])
+                for wall in geometry.walls:
+                    coord = wall.x1 if axis is SectionAxis.X else wall.y1
+                    if abs(coord - position) > max(wall.thickness, 0.25):
+                        continue
+                    span = max(abs(wall.y2 - wall.y1) if axis is SectionAxis.X else abs(wall.x2 - wall.x1), wall.length)
+                    x0, x1 = 70, 70 + span * scale
+                    y0, y1 = base_y - z0 * scale, base_y - (z0 + wall.height) * scale
+                    self.canvas.create_rectangle(x0, y1, x1, y0, fill="#d8c8ad", outline="#6b5b4b", width=2)
+            self.canvas.create_text(20, 20, text=f"PRIRODNI PRESJEK · {axis.value} · {position:.2f} m", anchor="nw", fill="#374151", font=("Segoe UI", 12, "bold"))
+        self.canvas.create_text(width - 20, height - 20, text="N = sjeverna referentna orijentacija", anchor="se", fill="#5f6368")
+        self.draw_compass()
+
+    def project_3d(self, x: float, y: float, z: float, scale: float, width: float, height: float) -> tuple[float, float]:
+        az = math.radians(self.workflow.model.orientation.north_azimuth_deg)
+        xr = x * math.cos(az) - y * math.sin(az)
+        yr = x * math.sin(az) + y * math.cos(az)
+        return width * 0.28 + xr * scale + yr * 0.48 * scale, height * 0.76 - z * scale - yr * 0.24 * scale
 
     def draw_3d(self) -> None:
         self.canvas.delete("all")
         geometries = build_geometry(self.workflow.model)
-        width = max(self.canvas.winfo_width(), 400)
-        height = max(self.canvas.winfo_height(), 300)
-        scale = 22.0
+        width = max(self.canvas.winfo_width(), 500)
+        height = max(self.canvas.winfo_height(), 350)
+        style = ViewStyle(self.view_style_var.get())
+        scale = 24.0
         for level_index, geometry in enumerate(geometries):
             z0 = sum(g.height for g in geometries[:level_index])
             for wall in geometry.walls:
-                def project(x: float, y: float, z: float) -> tuple[float, float]:
-                    return width * 0.25 + x * scale + y * 0.45 * scale, height * 0.72 - z * scale - y * 0.22 * scale
-                a0 = project(wall.x1, wall.y1, z0)
-                b0 = project(wall.x2, wall.y2, z0)
-                a1 = project(wall.x1, wall.y1, z0 + wall.height)
-                b1 = project(wall.x2, wall.y2, z0 + wall.height)
-                self.canvas.create_line(*a0, *b0, fill="#374151", width=3)
-                self.canvas.create_line(*a1, *b1, fill="#6b7280", width=3)
-                self.canvas.create_line(*a0, *a1, fill="#9ca3af")
-                self.canvas.create_line(*b0, *b1, fill="#9ca3af")
-        self.canvas.create_text(20, 20, text="3D Building Model — izvedeno iz svih etaža", anchor="nw", fill="#374151", font=("Segoe UI", 12, "bold"))
+                a0 = self.project_3d(wall.x1, wall.y1, z0, scale, width, height)
+                b0 = self.project_3d(wall.x2, wall.y2, z0, scale, width, height)
+                a1 = self.project_3d(wall.x1, wall.y1, z0 + wall.height, scale, width, height)
+                b1 = self.project_3d(wall.x2, wall.y2, z0 + wall.height, scale, width, height)
+                if style is ViewStyle.CONSTRUCTIONAL_LINE:
+                    for p, q in ((a0, b0), (a1, b1), (a0, a1), (b0, b1)):
+                        self.canvas.create_line(*p, *q, fill="#374151", width=2)
+                else:
+                    self.canvas.create_polygon(*a0, *b0, *b1, *a1, fill="#d8c8ad", outline="#6b5b4b")
+                    self.canvas.create_line(*a1, *b1, fill="#8b7355", width=2)
+        roof = self.workflow.model.roof
+        if roof and roof.height_m > 0 and geometries:
+            top = sum(g.height for g in geometries)
+            half_w = roof.width_m / 2.0
+            corners = ((0.0, 0.0, top), (roof.length_m, 0.0, top), (roof.length_m, roof.width_m, top), (0.0, roof.width_m, top))
+            pts = [self.project_3d(x, y, z, scale, width, height) for x, y, z in corners]
+            peak = self.project_3d(roof.length_m / 2.0, half_w, top + roof.height_m, scale, width, height)
+            if style is ViewStyle.CONSTRUCTIONAL_LINE:
+                for i in range(4):
+                    self.canvas.create_line(*pts[i], *pts[(i + 1) % 4], fill="#7c3aed", width=2)
+                    self.canvas.create_line(*pts[i], *peak, fill="#7c3aed", width=2)
+            else:
+                self.canvas.create_polygon(*pts[0], *pts[1], *peak, fill="#a9b4c2", outline="#667085")
+                self.canvas.create_polygon(*pts[1], *pts[2], *peak, fill="#8f9cac", outline="#667085")
+                self.canvas.create_polygon(*pts[2], *pts[3], *peak, fill="#7e8998", outline="#667085")
+                self.canvas.create_polygon(*pts[3], *pts[0], *peak, fill="#95a0ae", outline="#667085")
+        title = "3D LINIJSKI" if style is ViewStyle.CONSTRUCTIONAL_LINE else "PRIRODNI 3D"
+        self.canvas.create_text(20, 20, text=f"{title} · jedinstveni BuildingModel", anchor="nw", fill="#374151", font=("Segoe UI", 12, "bold"))
+        self.draw_compass()
 
     def redraw_active_view(self) -> None:
-        self.draw_3d() if self.step_var.get() == 4 else self.draw_floor_plan()
+        step = self.view_step.get()
+        if step == 3:
+            self.draw_floor_plan()
+        elif step == 4:
+            self.draw_section()
+        elif step == 5:
+            self.draw_3d()
+        else:
+            self.canvas.delete("all")
+            self.canvas.create_text(30, 30, text=f"{dict(STEPS)[step]} — Building Model", anchor="nw", font=("Segoe UI", 18, "bold"), fill="#1f2937")
+            self.draw_compass()
 
-    def refresh_plan(self) -> None:
+    def refresh_view(self) -> None:
+        self.refresh_level_combo()
         self.update_selected_wall()
+        self.update_orientation_info()
         self.update_summary()
         self.redraw_active_view()
 
@@ -440,7 +696,7 @@ class LATCESApp(tk.Tk):
             if new_length <= 0 or thickness <= 0:
                 raise ValueError
         except ValueError:
-            messagebox.showwarning("LAT-CES", "Dimenzije moraju biti pozitivni brojevi.", parent=self)
+            messagebox.showwarning("LAT-CES", "Dimenzije moraju biti pozitivne.", parent=self)
             return
         dx = wall.segment.end.x - wall.segment.start.x
         dy = wall.segment.end.y - wall.segment.start.y
@@ -449,73 +705,7 @@ class LATCESApp(tk.Tk):
         if old_length > 0:
             ux, uy = dx / old_length, dy / old_length
             wall.segment = Segment2D(wall.segment.start, Point2D(wall.segment.start.x + ux * new_length, wall.segment.start.y + uy * new_length))
-        self.refresh_plan()
-        self.status_var.set(f"Dimenzije primijenjene: {new_length:.2f} × {thickness:.2f} m")
-
-    def configure_step(self, step: int) -> None:
-        for child in self.step_controls.winfo_children():
-            child.destroy()
-        if step == 1:
-            self.workspace.configure(text=f"Tlocrt — {self.active_level.name}")
-            self.step_title.configure(text="1. Tlocrt")
-            self.step_info.configure(text="Početni projekat je kvadrat 10 × 10 m. Dodaj linije/zidove, pregrade i mijenjaj dimenzije.")
-            ttk.Button(self.step_controls, text="Nova pregrada", command=lambda: self.editor.set_tool("draw")).pack(fill="x", pady=3)
-        elif step == 2:
-            self.workspace.configure(text=f"Visina / spratnost — {self.active_level.name}")
-            self.step_title.configure(text="2. Visina / spratnost")
-            self.step_info.configure(text="Svaka etaža ima nezavisan tlocrt. Promjena sprata ne kopira raspored prethodnog sprata.")
-            ttk.Label(self.step_controls, text="Visina aktivne etaže (m)").pack(anchor="w")
-            ttk.Entry(self.step_controls, textvariable=self.height_var).pack(fill="x", pady=4)
-            ttk.Button(self.step_controls, text="Primijeni visinu", command=self.apply_height).pack(fill="x", pady=3)
-            ttk.Button(self.step_controls, text="Dodaj novu etažu", command=self.add_level).pack(fill="x", pady=3)
-            ttk.Label(self.step_controls, text="Novi sprat dobija svoj prazan kvadratni tlocrt.", wraplength=300, foreground="#5f6368").pack(anchor="w", pady=(6, 0))
-        elif step == 3:
-            self.workspace.configure(text=f"Otvori — {self.active_level.name}")
-            self.step_title.configure(text="3. Otvori")
-            self.step_info.configure(text="Vrata i prozori pripadaju aktivnoj etaži. Raspored je nezavisan po spratu.")
-            ttk.Button(self.step_controls, text="Dodaj vrata", command=lambda: self.editor.set_tool("door")).pack(fill="x", pady=3)
-            ttk.Button(self.step_controls, text="Dodaj prozor", command=lambda: self.editor.set_tool("window")).pack(fill="x", pady=3)
-        else:
-            self.workspace.configure(text="3D Building Model")
-            self.step_title.configure(text="4. 3D model")
-            self.step_info.configure(text="Prikaz se izvodi iz svih nezavisnih etaža i njihovih tlocrta.")
-            ttk.Button(self.step_controls, text="← Nazad na tlocrt", command=lambda: (self.step_var.set(1), self.goto_step())).pack(fill="x")
-
-    def goto_step(self) -> None:
-        step = self.step_var.get()
-        if step >= 3:
-            self.workflow.advance_to_openings()
-        if step >= 4:
-            self.workflow.advance_to_3d()
-        self.configure_step(step)
-        self.redraw_active_view()
-        self.update_summary()
-
-    def apply_height(self) -> None:
-        try:
-            self.workflow.set_active_level_height(float(self.height_var.get()))
-            self.workflow.model.levels
-        except ValueError as exc:
-            messagebox.showwarning("LAT-CES", str(exc), parent=self)
-            return
-        self.update_summary()
-        self.redraw_active_view()
-        self.status_var.set(f"Visina {self.active_level.name}: {self.active_level.height:.2f} m")
-
-    def add_level(self) -> None:
-        number = len(self.workflow.model.levels) + 1
-        level = self.workflow.add_level(f"Etaža {number}", float(self.height_var.get() or 2.80))
-        self.height_var.set(f"{level.height:.2f}")
-        self.refresh_level_combo()
-        self.step_var.set(1)
-        self.configure_step(1)
-        self.redraw_active_view()
-        self.update_summary()
-        self.status_var.set(f"Dodana {level.name} — novi nezavisni tlocrt")
-
-    def select_mode(self, mode: str) -> None:
-        self.active_mode.set(mode)
-        self.status_var.set(f"Režim: {mode} — Building Model ostaje centralni model")
+        self.refresh_view()
 
     def validate_model(self) -> None:
         findings = self.workflow.validate()
@@ -523,34 +713,35 @@ class LATCESApp(tk.Tk):
             messagebox.showwarning("LAT-CES — Provjera", "\n".join(findings), parent=self)
             self.status_var.set(f"Model nije validan: {len(findings)} nalaza")
         else:
-            messagebox.showinfo("LAT-CES — Provjera", "Building Model je geometrijski validan.", parent=self)
+            messagebox.showinfo("LAT-CES — Provjera", "Building Model je validan.", parent=self)
             self.status_var.set("Building Model je validan")
 
     def update_summary(self) -> None:
-        data = self.workflow.summary()
-        levels = [f"{idx + 1}. {level.name}: {level.height:.2f} m" for idx, level in enumerate(self.workflow.model.levels.values())]
-        text = (
-            f"Objekat: {data['model']}\n"
-            f"Etaže: {data['levels']}\n"
-            f"Aktivna: {data['active_level']}\n"
-            f"Površina: {data['floor_area_m2']:.2f} m²\n"
-            f"Zapremina: {data['volume_m3']:.2f} m³\n"
-            f"Korak: {data['step']}\n\n" + "\n".join(levels)
-        )
+        model = self.workflow.model
+        roof = model.roof
+        text = [
+            f"Objekat: {model.name}",
+            f"Etaže: {len(model.levels)}",
+            f"Aktivna: {self.active_level.name}",
+            f"Površina: {model.floor_area:.2f} m²",
+            f"Zapremina: {model.volume:.2f} m³",
+            f"Sjever: {model.orientation.north_azimuth_deg:.1f}°",
+            f"Pogled: {dict(STEPS)[self.view_step.get()]}",
+            f"Stil: {self.view_style_var.get()}",
+        ]
+        if roof:
+            text.extend((f"Krov: {roof.roof_type}", f"Nagib: {roof.slope_deg:.1f}°", f"Visina krova: {roof.height_m:.2f} m"))
+        levels = [f"{i + 1}. {level.name}: {level.height:.2f} m" for i, level in enumerate(model.levels.values())]
+        text.extend(("", *levels))
         self.summary_text.configure(state="normal")
         self.summary_text.delete("1.0", "end")
-        self.summary_text.insert("1.0", text)
+        self.summary_text.insert("1.0", "\n".join(text))
         self.summary_text.configure(state="disabled")
 
     def save_project(self) -> None:
         target = self.model_path.get()
         if not target:
-            target = filedialog.asksaveasfilename(
-                title="Sačuvaj Building Model konfiguraciju",
-                defaultextension=".json",
-                filetypes=(("LAT-CES Building JSON", "*.json"), ("All files", "*.*")),
-                initialfile="building_model.json",
-            )
+            target = filedialog.asksaveasfilename(title="Sačuvaj Building Model", defaultextension=".json", filetypes=(("LAT-CES Building JSON", "*.json"), ("All files", "*.*")), initialfile="building_model.json")
         if not target:
             return
         try:
@@ -561,35 +752,29 @@ class LATCESApp(tk.Tk):
             messagebox.showerror("LAT-CES", str(exc), parent=self)
 
     def load_project(self) -> None:
-        target = filedialog.askopenfilename(
-            title="Učitaj Building Model konfiguraciju",
-            filetypes=(("LAT-CES Building JSON", "*.json"), ("All files", "*.*")),
-        )
+        target = filedialog.askopenfilename(title="Učitaj Building Model", filetypes=(("LAT-CES Building JSON", "*.json"), ("All files", "*.*")))
         if not target:
             return
         try:
             self.workflow = load_workflow(target)
             self.editor = FloorPlanEditor(self)
             self.model_path.set(target)
-            self.step_var.set(min(self.workflow.current_step, 4))
-            self.refresh_level_combo()
-            self.configure_step(self.step_var.get())
-            self.redraw_active_view()
-            self.update_summary()
+            self.view_step.set(min(max(self.workflow.current_step, 1), 5))
+            self.refresh_view()
+            self.configure_stage(self.view_step.get())
             self.status_var.set(f"Konfiguracija učitana: {target}")
         except Exception as exc:
             messagebox.showerror("LAT-CES", str(exc), parent=self)
 
     def new_project(self) -> None:
-        self.workflow = new_workflow()
+        self.workflow = self.new_workflow()
         self.editor = FloorPlanEditor(self)
         self.model_path.set("")
-        self.step_var.set(1)
-        self.refresh_level_combo()
-        self.configure_step(1)
-        self.redraw_active_view()
-        self.update_summary()
-        self.status_var.set("Novi projekat — početni kvadrat 10 × 10 m")
+        self.view_step.set(1)
+        self.apply_default_orientation()
+        self.configure_stage(1)
+        self.refresh_view()
+        self.status_var.set("Novi projekat")
 
     def open_analysis(self) -> None:
         dialog = tk.Toplevel(self)
