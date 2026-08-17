@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .floor_plan import FloorPlan, Opening, Point2D, Segment2D, Wall
 from .model import BuildingModel, Level, Roof
+from .orientation import BuildingOrientation
 from .project_spec import BuildingProjectSpec, LevelProjectSpec, RoomSpec, WallConstructionSpec, JoinerySpec, RoofSpec
 from .workflow import BuildingWorkflow
 
@@ -54,6 +55,7 @@ def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjec
     if not data:
         return BuildingProjectSpec(name=name)
     roof_data = dict(data.get("roof", {}))
+    orientation_data = dict(data.get("orientation", {}))
     project = BuildingProjectSpec(
         name=str(data.get("name", name)),
         floor_count=int(data.get("floor_count", 0)),
@@ -61,6 +63,7 @@ def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjec
         roof_shape=str(data.get("roof_shape", "Nije definisan")),
         roof_height_m=float(data.get("roof_height_m", 0.0)),
         roof=RoofSpec(**roof_data) if roof_data else RoofSpec(roof_type=str(data.get("roof_shape", "Nije definisan")), height_m=float(data.get("roof_height_m", 0.0))),
+        orientation=BuildingOrientation(**orientation_data) if orientation_data else BuildingOrientation(),
     )
     for level_data in data.get("levels", []):
         item = dict(level_data)
@@ -86,10 +89,11 @@ def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjec
 def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
     roof = workflow.model.roof
     return {
-        "schema": "LAT-CES-BUILDING-3",
+        "schema": "LAT-CES-BUILDING-4",
         "model": {
             "name": workflow.model.name,
             "model_id": workflow.model.model_id,
+            "orientation": asdict(workflow.model.orientation),
             "roof": asdict(roof) if roof else None,
             "levels": [
                 {
@@ -125,7 +129,11 @@ def save_workflow(workflow: BuildingWorkflow, path: str | Path) -> Path:
 def load_workflow(path: str | Path) -> BuildingWorkflow:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     model_data = dict(data["model"])
-    model = BuildingModel(name=str(model_data.get("name", "Novi objekat")))
+    orientation_data = model_data.get("orientation")
+    model = BuildingModel(
+        name=str(model_data.get("name", "Novi objekat")),
+        orientation=BuildingOrientation(**dict(orientation_data)) if orientation_data else BuildingOrientation(),
+    )
     roof_data = model_data.get("roof")
     if roof_data:
         model.set_roof(Roof(**dict(roof_data)))
