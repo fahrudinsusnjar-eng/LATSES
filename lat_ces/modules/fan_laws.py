@@ -2,9 +2,10 @@
 LAT-CES Module 018: Fan Affinity Laws Engine
 Dokument: LAT-SCI-MOD-0018
 """
-from lat_ces.modules.quantity import PhysicalQuantity
+from lat_ces.scientific.quantity import PhysicalQuantity
 from lat_ces.modules.plenum import FLOW_RATE
 from lat_ces.modules.pressure import PRESSURE, POWER
+
 
 class FanAffinityEngine:
     @staticmethod
