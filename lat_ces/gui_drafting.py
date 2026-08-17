@@ -6,6 +6,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from lat_ces.building.floor_plan import Opening, Point2D, Segment2D, Wall
+from lat_ces.building.geometry3d import build_geometry
+from lat_ces.building.orientation import ViewStyle
 from lat_ces.gui_enhanced import EnhancedLATCESApp
 
 
@@ -21,7 +23,6 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         self.wall_draft_thickness = 0.20
         self.wall_draft_start: Point2D | None = None
         super().__init__()
-        # Replace only the click handler; move/drag/release handlers from the base GUI remain active.
         self.canvas.unbind("<Button-1>")
         self.canvas.bind("<Button-1>", self._draft_click)
         self.canvas.bind("<Motion>", self._draft_motion, add="+")
@@ -103,13 +104,10 @@ class DraftingLATCESApp(EnhancedLATCESApp):
         return 0.0, max(level.length_m, 0.0), 0.0, max(level.width_m, 0.0)
 
     def _draw_live_distances(self, point: Point2D, start: Point2D, end: Point2D) -> None:
-        # Remove only temporary dimension tags from the previous mouse position.
         self.canvas.delete("live-dimension")
         xmin, xmax, ymin, ymax = self._external_bounds()
         if xmax <= xmin or ymax <= ymin:
             return
-        # For a horizontal wall, show distance from each end to the nearest vertical exterior wall
-        # and from the wall centre to the nearest horizontal exterior wall.
         left = max(0.0, start.x - xmin)
         right = max(0.0, xmax - end.x)
         bottom = max(0.0, point.y - ymin)
@@ -125,11 +123,77 @@ class DraftingLATCESApp(EnhancedLATCESApp):
     def draw_floor_plan(self) -> None:
         super().draw_floor_plan()
         if self.wall_drafting:
-            # The motion event redraws the live preview; keep the instruction visible after redraws.
             self.canvas.create_text(20, 20, text="PREVIEW ZIDA — pomjeraj miš i klikni za postavljanje", anchor="nw", fill="#1d4ed8", font=("Segoe UI", 10, "bold"), tags="live-dimension")
 
+    def _draw_3d_wall_face(self, wall, z0: float, scale: float, width: float, height: float, style: ViewStyle) -> None:
+        """Render the wall as solid faces around opening voids.
+
+        The canonical wall remains one object. Openings only subtract visible
+        face area; this keeps FloorPlan → BuildingModel → 3D as one chain.
+        """
+        openings = sorted(wall.openings, key=lambda item: item.offset)
+        cursor = 0.0
+        dx = wall.x2 - wall.x1
+        dy = wall.y2 - wall.y1
+        length = wall.length
+        if length <= 0:
+            return
+
+        def point_at(distance: float, z: float) -> tuple[float, float]:
+            t = distance / length
+            return self.project_3d(wall.x1 + dx * t, wall.y1 + dy * t, z, scale, width, height)
+
+        def face(d0: float, d1: float, za: float, zb: float) -> None:
+            if d1 <= d0 or zb <= za:
+                return
+            p0 = point_at(d0, za)
+            p1 = point_at(d1, za)
+            p2 = point_at(d1, zb)
+            p3 = point_at(d0, zb)
+            if style is ViewStyle.CONSTRUCTIONAL_LINE:
+                for a, b in ((p0, p1), (p1, p2), (p2, p3), (p3, p0)):
+                    self.canvas.create_line(*a, *b, fill="#374151", width=2)
+            else:
+                self.canvas.create_polygon(*p0, *p1, *p2, *p3, fill="#d8c8ad", outline="#6b5b4b")
+
+        for opening in openings:
+            start = max(0.0, min(length, opening.offset))
+            end = max(start, min(length, opening.offset + opening.width))
+            face(cursor, start, z0, z0 + wall.height)
+            # Doors/windows currently start at floor level; the upper lintel is the wall above the opening.
+            face(start, end, z0 + opening.height_m, z0 + wall.height)
+            cursor = end
+        face(cursor, length, z0, z0 + wall.height)
+
+    def draw_3d(self) -> None:
+        self.canvas.delete("all")
+        geometries = build_geometry(self.workflow.model)
+        width, height = max(self.canvas.winfo_width(), 500), max(self.canvas.winfo_height(), 350)
+        style = ViewStyle(self.view_style_var.get())
+        scale = 24.0
+        for idx, geometry in enumerate(geometries):
+            z0 = sum(g.height for g in geometries[:idx])
+            for wall in geometry.walls:
+                self._draw_3d_wall_face(wall, z0, scale * self.zoom_3d, width, height, style)
+        roof = self.workflow.model.roof
+        if roof and roof.height_m > 0 and geometries:
+            top = sum(g.height for g in geometries)
+            corners = ((0.0, 0.0, top), (roof.length_m, 0.0, top), (roof.length_m, roof.width_m, top), (0.0, roof.width_m, top))
+            pts = [self.project_3d(x, y, z, scale * self.zoom_3d, width, height) for x, y, z in corners]
+            peak = self.project_3d(roof.length_m / 2.0, roof.width_m / 2.0, top + roof.height_m, scale * self.zoom_3d, width, height)
+            if style is ViewStyle.CONSTRUCTIONAL_LINE:
+                for i in range(4):
+                    self.canvas.create_line(*pts[i], *pts[(i + 1) % 4], fill="#7c3aed", width=2)
+                    self.canvas.create_line(*pts[i], *peak, fill="#7c3aed", width=2)
+            else:
+                fills = ("#a9b4c2", "#8f9cac", "#7e8998", "#95a0ae")
+                for i, fill in enumerate(fills):
+                    self.canvas.create_polygon(*pts[i], *pts[(i + 1) % 4], *peak, fill=fill, outline="#667085")
+        title = "3D LINIJSKI" if style is ViewStyle.CONSTRUCTIONAL_LINE else "PRIRODNI 3D"
+        self.canvas.create_text(20, 20, text=f"{title} · otvori izvedeni iz BuildingModela", anchor="nw", fill="#374151", font=("Segoe UI", 12, "bold"))
+        self.draw_compass()
+
     def _drop_opening(self, point: Point2D, kind: str) -> None:
-        # Existing enhanced opening placement remains dimensioned and wall-snapped.
         super()._drop_opening(point, kind)
 
 
