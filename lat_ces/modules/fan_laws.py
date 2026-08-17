@@ -1,13 +1,13 @@
-"""LAT-CES Module 018: Fan Affinity Laws Engine.
+"""Compatibility facade for the canonical fan affinity-law model."""
 
-Compatibility/domain API. Scientific dimensions and quantities are imported
-from canonical layers; this module does not depend on another legacy module.
-"""
 from lat_ces.core.dimensions import FLOW_RATE, PRESSURE, POWER
+from lat_ces.scientific.fan_laws import FanAffinityError, FanAffinityModel
 from lat_ces.scientific.quantity import PhysicalQuantity
 
 
 class FanAffinityEngine:
+    """Backward-compatible API delegating to the canonical scientific model."""
+
     @staticmethod
     def scale_by_rpm(
         flow: PhysicalQuantity,
@@ -16,16 +16,9 @@ class FanAffinityEngine:
         n1_rpm: float,
         n2_rpm: float,
     ):
-        """Scale fan flow, pressure and power using the affinity laws."""
-        if n1_rpm <= 0 or n2_rpm <= 0:
-            raise ValueError("Broj obrtaja (RPM) mora biti pozitivan!")
+        return FanAffinityModel.scale_by_rpm(
+            flow, pressure, power, n1_rpm, n2_rpm
+        )
 
-        ratio = n2_rpm / n1_rpm
-        scaled_q = PhysicalQuantity(flow.value * ratio, FLOW_RATE, flow.uncertainty * ratio)
-        scaled_p = PhysicalQuantity(
-            pressure.value * (ratio**2), PRESSURE, pressure.uncertainty * (ratio**2)
-        )
-        scaled_w = PhysicalQuantity(
-            power.value * (ratio**3), POWER, power.uncertainty * (ratio**3)
-        )
-        return scaled_q, scaled_p, scaled_w
+
+__all__ = ["FanAffinityEngine", "FanAffinityError", "FanAffinityModel"]
