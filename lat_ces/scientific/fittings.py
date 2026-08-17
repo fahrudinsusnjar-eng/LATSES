@@ -10,7 +10,7 @@ from lat_ces.core.dimensions import DENSITY, PRESSURE, VELOCITY
 from lat_ces.scientific.quantity import PhysicalQuantity
 
 
-class FittingLossError(Exception):
+class FittingLossError(ValueError):
     """Raised for invalid fitting-loss inputs."""
 
 
