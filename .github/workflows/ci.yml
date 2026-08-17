@@ -51,4 +51,4 @@ jobs:
 
     - name: Pokretanje LAT-CES Verifikacijskih Testova (0001 - 0009)
       run: |
-        pytest
+        pytest -x -vv
