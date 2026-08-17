@@ -375,17 +375,7 @@ class LATCESApp(tk.Tk):
 
     def apply_roof(self) -> None:
         try:
-            roof = self.workflow.set_roof(
-                self.roof_type_var.get().strip(),
-                float(self.roof_height_var.get()),
-                construction=self.roof_construction_var.get().strip(),
-                covering=self.roof_covering_var.get().strip(),
-                substructure=self.roof_substructure_var.get().strip(),
-                support=self.roof_support_var.get().strip(),
-                length_m=float(self.level_length_var.get()),
-                width_m=float(self.level_width_var.get()),
-                slope_deg=float(self.roof_slope_var.get()),
-            )
+            roof = self.workflow.set_roof(self.roof_type_var.get().strip(), float(self.roof_height_var.get()), construction=self.roof_construction_var.get().strip(), covering=self.roof_covering_var.get().strip(), substructure=self.roof_substructure_var.get().strip(), support=self.roof_support_var.get().strip(), length_m=float(self.level_length_var.get()), width_m=float(self.level_width_var.get()), slope_deg=float(self.roof_slope_var.get()))
         except ValueError as exc:
             messagebox.showwarning("LAT-CES — Krov", str(exc), parent=self)
             return
