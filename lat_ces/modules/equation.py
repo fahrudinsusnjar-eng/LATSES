@@ -5,7 +5,7 @@ Dokument: LAT-SCI-MOD-0011
 from typing import Callable
 
 from lat_ces.core.dimensions import Dimension
-from lat_ces.modules.quantity import PhysicalQuantity
+from lat_ces.scientific.quantity.quantity import PhysicalQuantity
 from lat_ces.scientific.quantity.equation import Equation
 
 
