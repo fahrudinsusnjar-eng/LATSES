@@ -1,8 +1,8 @@
-"""Canonical SI unit registry used by compatibility bridges."""
+"""Canonical SI unit registry used by Scientific Quantity bridges."""
 
 from __future__ import annotations
 
-from lat_ces.core.dimensions import (
+from .core import (
     AMOUNT,
     CURRENT,
     DIMENSIONLESS,
@@ -21,11 +21,6 @@ from lat_ces.core.dimensions import (
     second,
 )
 
-
-# Legacy module callers use TEMPERATURE for delta-T values.  Keep that bridge
-# mapping zero-offset so temperature differences can safely participate in unit
-# algebra. Canonical callers that need absolute temperature already provide an
-# explicit Unit (e.g. kelvin).
 kelvin_interval = Unit(
     name="kelvin interval",
     symbol="K",
@@ -33,7 +28,6 @@ kelvin_interval = Unit(
     scale_factor=1.0,
     offset=0.0,
 )
-
 
 _DERIVED_UNITS = {
     DIMENSIONLESS: Unit("dimensionless", "1", DIMENSIONLESS),
@@ -57,8 +51,6 @@ _DERIVED_UNITS = {
 
 
 def dimension_to_unit(dimension) -> Unit:
-    """Return the canonical SI unit for a supported physical dimension."""
-
     if dimension in _DERIVED_UNITS:
         return _DERIVED_UNITS[dimension]
     raise ValueError(f"No canonical SI unit is registered for dimension {dimension!r}")
