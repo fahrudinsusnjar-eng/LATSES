@@ -41,7 +41,12 @@ def _plan_from_dict(data: dict[str, object]) -> FloorPlan:
             thickness=float(wall_data.get("thickness", 0.20)),
         )
         for opening_data in wall_data.get("openings", []):
-            opening = Opening(kind=str(opening_data["kind"]), offset=float(opening_data["offset"]), width=float(opening_data["width"]))
+            opening = Opening(
+                kind=str(opening_data["kind"]),
+                offset=float(opening_data["offset"]),
+                width=float(opening_data["width"]),
+                height_m=float(opening_data.get("height_m", 2.10)),
+            )
             wall.add_opening(opening)
         plan.add_wall(wall)
     return plan
