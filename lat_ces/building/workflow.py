@@ -35,6 +35,11 @@ def make_envelope_floor_plan(name: str, length_m: float, width_m: float, thickne
     return plan
 
 
+def make_square_floor_plan(name: str, size_m: float, thickness_m: float = 0.20) -> FloorPlan:
+    """Backward-compatible square envelope helper for existing GUI callers."""
+    return make_envelope_floor_plan(name, size_m, size_m, thickness_m)
+
+
 def add_room_layout(plan: FloorPlan, spec: LevelProjectSpec) -> None:
     """Place room partitions from the first-step room dimensions."""
     if not spec.rooms:
