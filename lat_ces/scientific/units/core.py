@@ -24,6 +24,7 @@ from lat_ces.scientific.dimensions.dimension import (
     TIME,
     VELOCITY,
     Dimension,
+    canonical_dimension,
 )
 
 
