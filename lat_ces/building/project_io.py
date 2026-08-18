@@ -6,8 +6,9 @@ from dataclasses import asdict
 from pathlib import Path
 
 from .floor_plan import FloorPlan, Opening, Point2D, Segment2D, Wall
-from .model import BuildingModel, Level
-from .project_spec import BuildingProjectSpec, LevelProjectSpec, RoomSpec, WallConstructionSpec
+from .model import BuildingModel, Level, Roof
+from .orientation import BuildingOrientation
+from .project_spec import BuildingProjectSpec, LevelProjectSpec, RoomSpec, WallConstructionSpec, JoinerySpec, RoofSpec
 from .workflow import BuildingWorkflow
 
 
@@ -44,6 +45,7 @@ def _plan_from_dict(data: dict[str, object]) -> FloorPlan:
                 kind=str(opening_data["kind"]),
                 offset=float(opening_data["offset"]),
                 width=float(opening_data["width"]),
+                height_m=float(opening_data.get("height_m", 2.10)),
             )
             wall.add_opening(opening)
         plan.add_wall(wall)
@@ -54,19 +56,24 @@ def _spec_to_dict(spec: BuildingProjectSpec | None) -> dict[str, object] | None:
     return asdict(spec) if spec else None
 
 
-def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjectSpec:
+def _spec_from_dict(data: dict[str, object] | None, name: str, *, fallback_orientation: BuildingOrientation | None = None) -> BuildingProjectSpec:
     if not data:
-        return BuildingProjectSpec(name=name)
+        return BuildingProjectSpec(name=name, orientation=fallback_orientation or BuildingOrientation())
+    roof_data = dict(data.get("roof", {}))
+    orientation_data = dict(data.get("orientation", {}))
     project = BuildingProjectSpec(
         name=str(data.get("name", name)),
         floor_count=int(data.get("floor_count", 0)),
         floor_count_finalized=bool(data.get("floor_count_finalized", False)),
         roof_shape=str(data.get("roof_shape", "Nije definisan")),
         roof_height_m=float(data.get("roof_height_m", 0.0)),
+        roof=RoofSpec(**roof_data) if roof_data else RoofSpec(roof_type=str(data.get("roof_shape", "Nije definisan")), height_m=float(data.get("roof_height_m", 0.0))),
+        orientation=BuildingOrientation(**orientation_data) if orientation_data else (fallback_orientation or BuildingOrientation()),
     )
     for level_data in data.get("levels", []):
         item = dict(level_data)
         construction = WallConstructionSpec(**dict(item.get("construction", {})))
+        joinery = JoinerySpec(**dict(item.get("joinery", {})))
         rooms = [RoomSpec(**dict(room)) for room in item.get("rooms", [])]
         project.levels.append(
             LevelProjectSpec(
@@ -75,6 +82,8 @@ def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjec
                 length_m=float(item.get("length_m", 0.0)),
                 width_m=float(item.get("width_m", 0.0)),
                 construction=construction,
+                cladding=str(item.get("cladding", "")),
+                joinery=joinery,
                 rooms=rooms,
                 finalized=bool(item.get("finalized", False)),
             )
@@ -83,23 +92,35 @@ def _spec_from_dict(data: dict[str, object] | None, name: str) -> BuildingProjec
 
 
 def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
+    roof = workflow.model.roof
+    project_spec = workflow.project_spec
+    if project_spec is not None:
+        project_spec.orientation = workflow.model.orientation
     return {
-        "schema": "LAT-CES-BUILDING-2",
+        "schema": "LAT-CES-BUILDING-4",
         "model": {
             "name": workflow.model.name,
             "model_id": workflow.model.model_id,
+            "orientation": asdict(workflow.model.orientation),
+            "roof": asdict(roof) if roof else None,
             "levels": [
                 {
                     "name": level.name,
                     "level_id": level.level_id,
                     "elevation": level.elevation,
                     "height": level.height,
+                    "length_m": level.length_m,
+                    "width_m": level.width_m,
+                    "wall_construction": level.wall_construction,
+                    "insulation": level.insulation,
+                    "cladding": level.cladding,
+                    "joinery": level.joinery,
                     "floor_plan": _plan_to_dict(level.floor_plan) if level.floor_plan else None,
                 }
                 for level in workflow.model.levels.values()
             ],
         },
-        "project_spec": _spec_to_dict(workflow.project_spec),
+        "project_spec": _spec_to_dict(project_spec),
         "roof_shape": workflow.roof_shape,
         "roof_height_m": workflow.roof_height_m,
         "current_step": workflow.current_step,
@@ -116,14 +137,32 @@ def save_workflow(workflow: BuildingWorkflow, path: str | Path) -> Path:
 def load_workflow(path: str | Path) -> BuildingWorkflow:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     model_data = dict(data["model"])
-    model = BuildingModel(name=str(model_data.get("name", "Novi objekat")))
+    orientation_data = model_data.get("orientation")
+    model = BuildingModel(
+        name=str(model_data.get("name", "Novi objekat")),
+        orientation=BuildingOrientation(**dict(orientation_data)) if orientation_data else BuildingOrientation(),
+    )
+    roof_data = model_data.get("roof")
+    if roof_data:
+        model.set_roof(Roof(**dict(roof_data)))
     workflow = BuildingWorkflow(model=model, current_step=int(data.get("current_step", 1)))
-    workflow.project_spec = _spec_from_dict(data.get("project_spec"), model.name)
+    workflow.project_spec = _spec_from_dict(data.get("project_spec"), model.name, fallback_orientation=model.orientation)
+    workflow.project_spec.orientation = model.orientation
     workflow.roof_shape = str(data.get("roof_shape", workflow.project_spec.roof_shape))
     workflow.roof_height_m = float(data.get("roof_height_m", workflow.project_spec.roof_height_m))
     for level_data in model_data.get("levels", []):
         item = dict(level_data)
-        level = model.add_level(Level(name=str(item["name"]), elevation=float(item["elevation"]), height=float(item["height"])))
+        level = model.add_level(Level(
+            name=str(item["name"]),
+            elevation=float(item["elevation"]),
+            height=float(item["height"]),
+            length_m=float(item.get("length_m", 0.0)),
+            width_m=float(item.get("width_m", 0.0)),
+            wall_construction=str(item.get("wall_construction", "")),
+            insulation=str(item.get("insulation", "")),
+            cladding=str(item.get("cladding", "")),
+            joinery=str(item.get("joinery", "")),
+        ))
         if item.get("floor_plan"):
             level.set_floor_plan(_plan_from_dict(dict(item["floor_plan"])))
     active = data.get("active_level_id")

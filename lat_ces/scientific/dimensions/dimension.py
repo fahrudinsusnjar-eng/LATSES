@@ -16,7 +16,7 @@ class Dimension:
     J: int = 0
 
     def __mul__(self, other: "Dimension") -> "Dimension":
-        return Dimension(
+        return canonical_dimension(
             L=self.L + other.L,
             M=self.M + other.M,
             T=self.T + other.T,
@@ -27,7 +27,7 @@ class Dimension:
         )
 
     def __truediv__(self, other: "Dimension") -> "Dimension":
-        return Dimension(
+        return canonical_dimension(
             L=self.L - other.L,
             M=self.M - other.M,
             T=self.T - other.T,
@@ -38,7 +38,7 @@ class Dimension:
         )
 
     def __pow__(self, power: int | float) -> "Dimension":
-        return Dimension(
+        return canonical_dimension(
             L=self.L * int(power),
             M=self.M * int(power),
             T=self.T * int(power),
