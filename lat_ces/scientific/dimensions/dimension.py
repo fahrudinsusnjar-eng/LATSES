@@ -3,6 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+def canonical_dimension(L=0, M=0, T=0, I=0, Theta=0, N=0, J=0) -> "Dimension":
+    """Create a canonical Dimension from SI base-dimension exponents."""
+    return Dimension(L=L, M=M, T=T, I=I, Theta=Theta, N=N, J=J)
+
+
 @dataclass(frozen=True)
 class Dimension:
     """Canonical SI base-dimension exponent vector."""
