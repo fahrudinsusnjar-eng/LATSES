@@ -25,11 +25,11 @@ def test_small_reference_house_drives_all_first_order_engines():
 def test_explicit_room_mep_inputs_are_consumed_by_one_model():
     model = make_small_reference_house()
     vents = [
-        VentilationOpening("r1_supply", "room-1", "supply", 0.10, 0.05, 0.70),
-        VentilationOpening("r1_extract", "room-1", "extract", 0.10, 0.05, 2.50),
+        VentilationOpening("r1_supply", "R1", "supply", 0.10, 0.05, 0.70),
+        VentilationOpening("r1_extract", "R1", "extract", 0.10, 0.05, 2.50),
     ]
-    water = [WaterBranch("r1_cold", "room-1", "cold_water", 0.02, 0.0002, 8.0)]
-    heating = [HeatingZone("r1_floor", "room-1", "underfloor", 35.0, 28.0)]
+    water = [WaterBranch("r1_cold", "R1", "cold_water", 0.02, 0.0002, 8.0)]
+    heating = [HeatingZone("r1_floor", "R1", "underfloor", 35.0, 28.0)]
 
     report = analyze_building(
         model,
@@ -41,6 +41,6 @@ def test_explicit_room_mep_inputs_are_consumed_by_one_model():
     assert report.ventilation_openings == vents
     assert report.water_branches == water
     assert report.heating_zones == heating
-    assert report.room_results["room-1"].heating.emitter_type == "underfloor"
-    assert report.room_results["room-1"].airflow.velocity_m_s == 0.05
-    assert report.room_results["room-1"].airflow.human_zone_ok is True
+    assert report.room_results["R1"].heating.emitter_type == "underfloor"
+    assert report.room_results["R1"].airflow.velocity_m_s == 0.05
+    assert report.room_results["R1"].airflow.human_zone_ok is True
