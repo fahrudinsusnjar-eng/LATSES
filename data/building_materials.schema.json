@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LAT-CES Parameterized Building Material / Element Template",
+  "type": "object",
+  "required": ["catalog_id", "catalog_version", "categories", "glazing_options"],
+  "properties": {
+    "catalog_id": {"type": "string"},
+    "catalog_version": {"type": "string"},
+    "categories": {"type": "array"},
+    "glazing_options": {"type": "array"}
+  }
+}
