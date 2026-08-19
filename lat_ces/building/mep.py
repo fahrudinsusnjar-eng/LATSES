@@ -1,8 +1,8 @@
 """Runtime MEP registry attached to the canonical GUI BuildingModel.
 
 The registry keeps MEP objects out of GUI widgets and makes them explicit
-BuildingModel-owned data. Phase 1 exposes ventilation and water collections;
-heating collections are reserved for the next editor slice.
+BuildingModel-owned data. Each editor slice owns CRUD here; engineering
+solvers remain downstream consumers of the same objects.
 """
 from __future__ import annotations
 
@@ -27,6 +27,10 @@ class MEPRegistry:
     @property
     def all_water_branches(self) -> tuple[WaterBranch, ...]:
         return tuple(self.water_branches.values())
+
+    @property
+    def all_heating_zones(self) -> tuple[HeatingZone, ...]:
+        return tuple(self.heating_zones.values())
 
     def add_ventilation_opening(self, opening: VentilationOpening) -> VentilationOpening:
         if opening.id in self.ventilation_openings:
@@ -57,6 +61,21 @@ class MEPRegistry:
 
     def remove_water_branch(self, branch_id: str) -> WaterBranch:
         return self.water_branches.pop(branch_id)
+
+    def add_heating_zone(self, zone: HeatingZone) -> HeatingZone:
+        if zone.id in self.heating_zones:
+            raise ValueError(f"Duplicate heating zone id: {zone.id}")
+        self.heating_zones[zone.id] = zone
+        return zone
+
+    def update_heating_zone(self, zone_id: str, **changes: object) -> HeatingZone:
+        current = self.heating_zones[zone_id]
+        updated = replace(current, **changes)
+        self.heating_zones[zone_id] = updated
+        return updated
+
+    def remove_heating_zone(self, zone_id: str) -> HeatingZone:
+        return self.heating_zones.pop(zone_id)
 
 
 def ensure_mep_registry(model: object) -> MEPRegistry:
