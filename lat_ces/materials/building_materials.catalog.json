@@ -1,0 +1,45 @@
+{
+  "catalog_id": "LAT-CES-BUILDING-MATERIALS",
+  "catalog_version": "1.0",
+  "purpose": "parameterized building material and element templates for BuildingModel and quantity takeoff",
+  "authority": {
+    "commercial_dimensions_verified": false,
+    "normative_design_values": false,
+    "engineering_selection": false
+  },
+  "categories": [
+    {"id":"masonry_block","name":"Zidni blokovi","unit":"piece","requires_dimensions":true},
+    {"id":"partition_block","name":"Pregradni blokovi","unit":"piece","requires_dimensions":true},
+    {"id":"drywall","name":"Gips-kartonske ploče / sistemi","unit":"m2","requires_dimensions":true},
+    {"id":"concrete","name":"Beton","unit":"m3","requires_dimensions":false},
+    {"id":"reinforcement_steel","name":"Armiračka čelična šipka / mreža","unit":"kg","requires_dimensions":true},
+    {"id":"roof_tile","name":"Krovna crijepna obloga","unit":"piece","requires_dimensions":true},
+    {"id":"roof_sheet","name":"Krovni lim","unit":"m2","requires_dimensions":true},
+    {"id":"timber_rafter","name":"Krovna građa — rogovi/grede","unit":"m3","requires_dimensions":true},
+    {"id":"roof_batten","name":"Letve","unit":"m","requires_dimensions":true},
+    {"id":"insulation_glass_wool","name":"Staklena vuna","unit":"m2","requires_dimensions":true},
+    {"id":"insulation_rock_wool","name":"Kamena vuna","unit":"m2","requires_dimensions":true},
+    {"id":"insulation_eps","name":"EPS / fasadna izolacija","unit":"m2","requires_dimensions":true},
+    {"id":"facade_finish","name":"Fasadni završni sloj","unit":"m2","requires_dimensions":false},
+    {"id":"plaster","name":"Žbuka / malter","unit":"m2","requires_dimensions":false},
+    {"id":"tile","name":"Keramičke pločice","unit":"m2","requires_dimensions":true},
+    {"id":"parquet","name":"Parket","unit":"m2","requires_dimensions":true},
+    {"id":"laminate","name":"Laminat","unit":"m2","requires_dimensions":true},
+    {"id":"window_frame","name":"Vanjska stolarija — drvo/PVC/aluminij","unit":"piece","requires_dimensions":true},
+    {"id":"interior_door","name":"Unutrašnja stolarija — drvo/MDF/iverica","unit":"piece","requires_dimensions":true},
+    {"id":"glazing","name":"Staklena ispuna — 1/2/3/4 stakla","unit":"piece","requires_dimensions":true},
+    {"id":"gutter","name":"Oluk","unit":"m","requires_dimensions":true},
+    {"id":"downpipe","name":"Odvodna / olučna cijev","unit":"m","requires_dimensions":true},
+    {"id":"sheet_metal","name":"Limarski elementi","unit":"m2","requires_dimensions":true},
+    {"id":"railing","name":"Ograda balkona/terase","unit":"m","requires_dimensions":true}
+  ],
+  "glazing_options": [
+    {"id":"G1","panes":1,"gas_fill":null,"low_e":false},
+    {"id":"G2","panes":2,"gas_fill":"unspecified","low_e":false},
+    {"id":"G2-LE","panes":2,"gas_fill":"unspecified","low_e":true},
+    {"id":"G3","panes":3,"gas_fill":"unspecified","low_e":false},
+    {"id":"G3-LE","panes":3,"gas_fill":"unspecified","low_e":true},
+    {"id":"G4","panes":4,"gas_fill":"unspecified","low_e":true}
+  ],
+  "notes": "All dimensions, densities, U-values, strength values and commercial product identifiers must be supplied or verified before engineering use. This catalog is a parameterized template library, not a manufacturer or normative database."
+}
