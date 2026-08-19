@@ -10,6 +10,8 @@ from .model import BuildingModel, Level, Roof
 from .orientation import BuildingOrientation
 from .project_spec import BuildingProjectSpec, LevelProjectSpec, RoomSpec, WallConstructionSpec, JoinerySpec, RoofSpec
 from .workflow import BuildingWorkflow
+from .mep import ensure_mep_registry
+from .systems import HeatingZone, VentilationOpening, WaterBranch
 
 
 def _plan_to_dict(plan: FloorPlan) -> dict[str, object]:
@@ -97,13 +99,36 @@ def _spec_from_dict(data: dict[str, object] | None, name: str, *, fallback_orien
     return project
 
 
+def _mep_to_dict(model: BuildingModel) -> dict[str, object] | None:
+    registry = getattr(model, "mep", None)
+    if registry is None:
+        return None
+    return {
+        "ventilation_openings": [asdict(item) for item in registry.all_ventilation_openings],
+        "water_branches": [asdict(item) for item in registry.all_water_branches],
+        "heating_zones": [asdict(item) for item in registry.all_heating_zones],
+    }
+
+
+def _mep_from_dict(model: BuildingModel, data: dict[str, object] | None) -> None:
+    if not data:
+        return
+    registry = ensure_mep_registry(model)
+    for item in data.get("ventilation_openings", []):
+        registry.add_ventilation_opening(VentilationOpening(**dict(item)))
+    for item in data.get("water_branches", []):
+        registry.add_water_branch(WaterBranch(**dict(item)))
+    for item in data.get("heating_zones", []):
+        registry.add_heating_zone(HeatingZone(**dict(item)))
+
+
 def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
     roof = workflow.model.roof
     project_spec = workflow.project_spec
     if project_spec is not None:
         project_spec.orientation = workflow.model.orientation
     return {
-        "schema": "LAT-CES-BUILDING-5",
+        "schema": "LAT-CES-BUILDING-6",
         "model": {
             "name": workflow.model.name,
             "model_id": workflow.model.model_id,
@@ -132,6 +157,7 @@ def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
                 }
                 for level in workflow.model.levels.values()
             ],
+            "mep": _mep_to_dict(workflow.model),
         },
         "project_spec": _spec_to_dict(project_spec),
         "roof_shape": workflow.roof_shape,
@@ -185,6 +211,7 @@ def load_workflow(path: str | Path) -> BuildingWorkflow:
         ))
         if item.get("floor_plan"):
             level.set_floor_plan(_plan_from_dict(dict(item["floor_plan"])))
+    _mep_from_dict(model, model_data.get("mep"))
     active = data.get("active_level_id")
     if active and active in model.levels:
         workflow.active_level_id = str(active)
