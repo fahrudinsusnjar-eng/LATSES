@@ -8,6 +8,7 @@ invented here.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib.resources import files
 import json
 from pathlib import Path
 from typing import Any, Iterable
@@ -60,7 +61,20 @@ class BuildingMaterialCatalog:
 
     @classmethod
     def default(cls) -> "BuildingMaterialCatalog":
-        return cls(Path(__file__).resolve().parents[2] / "data" / "building_materials.catalog.json")
+        resource = files("lat_ces.materials").joinpath("building_materials.catalog.json")
+        with resource.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return cls.from_payload(payload)
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "BuildingMaterialCatalog":
+        instance = object.__new__(cls)
+        instance.path = Path("<packaged-building-material-catalog>")
+        instance.catalog_id = str(payload["catalog_id"])
+        instance.catalog_version = str(payload["catalog_version"])
+        instance._items = tuple(BuildingCatalogItem.from_dict(item) for item in payload.get("categories", ()))
+        instance._glazing = tuple(GlazingOption.from_dict(item) for item in payload.get("glazing_options", ()))
+        return instance
 
     @property
     def items(self) -> tuple[BuildingCatalogItem, ...]:
