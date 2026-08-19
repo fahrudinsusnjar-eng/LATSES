@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from lat_ces.building.mep import ensure_mep_registry
-from lat_ces.building.mep_engineering import EngineeringResult, MEPEngineeringService
+from lat_ces.building.mep_engineering import EngineeringResult, MEPEngineeringService, ensure_engineering_results
 
 
 @dataclass(frozen=True)
@@ -36,25 +35,18 @@ def build_building_engineering_report(
     """Evaluate every MEP object and aggregate the available engineering results."""
     registry = ensure_mep_registry(model)
     service = service or MEPEngineeringService()
-    results = []
+    results: list[EngineeringResult] = []
 
     for opening in registry.all_ventilation_openings:
-        result = service.calculate_ventilation(opening)
-        registry_results = registry
-        results.append(result)
-
+        results.append(service.calculate_ventilation(opening))
     for branch in registry.all_water_branches:
-        result = service.calculate_water(branch)
-        results.append(result)
-
+        results.append(service.calculate_water(branch))
     for zone in registry.all_heating_zones:
-        result = service.calculate_heating(zone)
-        results.append(result)
+        results.append(service.calculate_heating(zone))
 
-    result_registry = getattr(registry, "engineering_results", None)
-    if result_registry is not None:
-        for result in results:
-            result_registry.put(result)
+    result_registry = ensure_engineering_results(registry)
+    for result in results:
+        result_registry.put(result)
 
     calculated_count = sum(result.status == "CALCULATED" for result in results)
     input_required_count = sum(result.status == "INPUT_REQUIRED" for result in results)
