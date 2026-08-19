@@ -16,6 +16,7 @@ lat-ces-gui = "lat_ces.gui_drafting:main"
 lat-ces-gui-mep = "lat_ces.gui_mep:main"
 lat-ces-gui-water = "lat_ces.gui_water:main"
 lat-ces-gui-heating = "lat_ces.gui_heating:main"
+lat-ces-gui-mep-workspace = "lat_ces.gui_mep_workspace:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
