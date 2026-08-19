@@ -49,13 +49,16 @@ class Opening:
 
 @dataclass
 class Wall:
-    """A linear floor-plan wall with optional openings."""
+    """A linear wall with topology, material and preliminary structural metadata."""
 
     name: str
     segment: Segment2D
     thickness: float = 0.2
     wall_id: str = field(default_factory=lambda: f"WALL-{uuid4()}")
     openings: list[Opening] = field(default_factory=list)
+    load_bearing: bool = False
+    material_id: str | None = None
+    tributary_width_m: float = 0.0
 
     def __post_init__(self) -> None:
         if not self.name.strip():
@@ -64,6 +67,8 @@ class Wall:
             raise ValueError("Wall segment must have non-zero length")
         if self.thickness <= 0:
             raise ValueError("Wall.thickness must be > 0")
+        if self.tributary_width_m < 0:
+            raise ValueError("Wall.tributary_width_m must be >= 0")
 
     def add_opening(self, opening: Opening) -> Opening:
         if opening.offset + opening.width > self.segment.length:
@@ -80,6 +85,10 @@ class Wall:
     @property
     def net_length(self) -> float:
         return self.segment.length - sum(opening.width for opening in self.openings)
+
+    @property
+    def role_label(self) -> str:
+        return "Nosivi zid" if self.load_bearing else "Pregradni / nenosivi zid"
 
 
 @dataclass
@@ -105,6 +114,10 @@ class FloorPlan:
         return len(self.walls)
 
     @property
+    def load_bearing_wall_count(self) -> int:
+        return sum(wall.load_bearing for wall in self.walls.values())
+
+    @property
     def gross_wall_length(self) -> float:
         return sum(wall.segment.length for wall in self.walls.values())
 
@@ -120,4 +133,6 @@ class FloorPlan:
                     findings.append(
                         f"Opening {opening.opening_id} exceeds wall {wall.wall_id}"
                     )
+            if wall.load_bearing and wall.tributary_width_m <= 0.0:
+                findings.append(f"Load-bearing wall {wall.wall_id} has no tributary width")
         return findings
