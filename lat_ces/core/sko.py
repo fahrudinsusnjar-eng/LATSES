@@ -21,7 +21,8 @@ class SKOState(Enum):
 class ScientificKnowledgeObject:
     """
     Base class for all scientific entities in LAT-CES.
-    Provides metadata, architectural constraints, and traceability.
+    Provides metadata, architectural constraints, traceability, and a
+    one-way DRAFT -> RELEASED immutability boundary.
     """
 
     name: str
@@ -42,6 +43,12 @@ class ScientificKnowledgeObject:
     state: SKOState = SKOState.DRAFT
     _hash: Optional[str] = None
     _locked: bool = False
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Reject public mutation after the SKO has been released."""
+        if getattr(self, "_locked", False) and not name.startswith("_"):
+            raise AttributeError("Released ScientificKnowledgeObject is immutable")
+        object.__setattr__(self, name, value)
 
     def __init__(self, *args, **kwargs):
         # Legacy positional mode: ScientificKnowledgeObject(sko_id, title, payload)
@@ -111,6 +118,8 @@ class ScientificKnowledgeObject:
 
     def approve(self, approved_by: str) -> None:
         """Promotes the SKO status to Approved with verification signature."""
+        if self._locked:
+            raise AttributeError("Released ScientificKnowledgeObject is immutable")
         if not approved_by:
             raise ValueError("approved_by must be a non-empty string")
         self.status = "Approved"
@@ -118,6 +127,8 @@ class ScientificKnowledgeObject:
 
     def deprecate(self, reason: str) -> None:
         """Marks the SKO as deprecated with an explicit rationale."""
+        if self._locked:
+            raise AttributeError("Released ScientificKnowledgeObject is immutable")
         self.status = "Deprecated"
         self.limitations.append(f"DEPRECATED: {reason}")
 
@@ -130,6 +141,17 @@ class ScientificKnowledgeObject:
         }
         canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()
+
+    def lock_and_release(self) -> str:
+        """Hash the current canonical content and permanently release the SKO."""
+        if self.state is SKOState.RELEASED or self._locked:
+            raise ValueError("ScientificKnowledgeObject is already released")
+        release_hash = self.compute_hash()
+        object.__setattr__(self, "_hash", release_hash)
+        object.__setattr__(self, "status", "Released")
+        object.__setattr__(self, "state", SKOState.RELEASED)
+        object.__setattr__(self, "_locked", True)
+        return release_hash
 
     def __repr__(self) -> str:
         return f"SKO({self.sko_id}: {self.title})"
