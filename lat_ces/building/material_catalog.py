@@ -6,10 +6,10 @@ product dimension, density, coverage, or consumption value.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 
 
-class MaterialCategory(StrEnum):
+class MaterialCategory(str, Enum):
     MASONRY_BLOCK = "masonry_block"
     PARTITION_BLOCK = "partition_block"
     DRYWALL = "drywall"
