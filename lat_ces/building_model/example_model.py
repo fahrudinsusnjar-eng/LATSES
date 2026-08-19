@@ -8,6 +8,10 @@ engineering while exercising multi-level volume aggregation.
 from .core import BuildingModel, Level, Material, Opening, Room, Wall
 
 
+def _id(base: str, level: Level) -> str:
+    return base if level.id == "L0" else f"{base}-{level.id}"
+
+
 def _populate_reference_level(level: Level, brick: Material, concrete: Material, *, room_offset: int = 0) -> None:
     level.add_room(Room(f"R{room_offset + 1}", "Living" if room_offset == 0 else "Living Upper", 5.0, 4.0, 2.80))
     level.add_room(Room(f"R{room_offset + 2}", "Kitchen" if room_offset == 0 else "Kitchen Upper", 5.0, 4.0, 2.80))
@@ -15,16 +19,16 @@ def _populate_reference_level(level: Level, brick: Material, concrete: Material,
     level.add_room(Room(f"R{room_offset + 4}", "Service" if room_offset == 0 else "Service Upper", 5.0, 4.0, 2.80))
 
     # Exterior walls: 20 cm brick, 2.80 m high.
-    south = Wall(f"W-S-{level.id}", 10.0, 0.20, 2.80, brick)
+    south = Wall(_id("W-S", level), 10.0, 0.20, 2.80, brick)
     south.add_opening(Opening("door", 0.90, 2.10, position_m=1.20))
     south.add_opening(Opening("window", 1.50, 1.20, sill_height_m=0.90, position_m=5.00))
-    north = Wall(f"W-N-{level.id}", 10.0, 0.20, 2.80, brick)
+    north = Wall(_id("W-N", level), 10.0, 0.20, 2.80, brick)
     north.add_opening(Opening("window", 1.50, 1.20, sill_height_m=0.90, position_m=3.00))
-    east = Wall(f"W-E-{level.id}", 8.0, 0.20, 2.80, brick)
-    west = Wall(f"W-W-{level.id}", 8.0, 0.20, 2.80, brick)
+    east = Wall(_id("W-E", level), 8.0, 0.20, 2.80, brick)
+    west = Wall(_id("W-W", level), 8.0, 0.20, 2.80, brick)
 
     # One representative structural partition.
-    partition = Wall(f"W-P1-{level.id}", 8.0, 0.10, 2.80, concrete)
+    partition = Wall(_id("W-P1", level), 8.0, 0.10, 2.80, concrete)
     partition.add_opening(Opening("door", 0.80, 2.10, position_m=3.50))
 
     for wall in (south, north, east, west, partition):
