@@ -1,17 +1,15 @@
 """Runtime MEP registry attached to the canonical GUI BuildingModel.
 
 The registry keeps MEP objects out of GUI widgets and makes them explicit
-BuildingModel-owned data. Phase 1 exposes ventilation openings; water and
-heating collections are reserved for the next editor slices.
+BuildingModel-owned data. Phase 1 exposes ventilation and water collections;
+heating collections are reserved for the next editor slice.
 """
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Dict, TypeVar
+from typing import Dict
 
 from lat_ces.building_model.systems import HeatingZone, VentilationOpening, WaterBranch
-
-T = TypeVar("T", VentilationOpening, WaterBranch, HeatingZone)
 
 
 class MEPRegistry:
@@ -25,6 +23,10 @@ class MEPRegistry:
     @property
     def all_ventilation_openings(self) -> tuple[VentilationOpening, ...]:
         return tuple(self.ventilation_openings.values())
+
+    @property
+    def all_water_branches(self) -> tuple[WaterBranch, ...]:
+        return tuple(self.water_branches.values())
 
     def add_ventilation_opening(self, opening: VentilationOpening) -> VentilationOpening:
         if opening.id in self.ventilation_openings:
@@ -40,6 +42,21 @@ class MEPRegistry:
 
     def remove_ventilation_opening(self, opening_id: str) -> VentilationOpening:
         return self.ventilation_openings.pop(opening_id)
+
+    def add_water_branch(self, branch: WaterBranch) -> WaterBranch:
+        if branch.id in self.water_branches:
+            raise ValueError(f"Duplicate water branch id: {branch.id}")
+        self.water_branches[branch.id] = branch
+        return branch
+
+    def update_water_branch(self, branch_id: str, **changes: object) -> WaterBranch:
+        current = self.water_branches[branch_id]
+        updated = replace(current, **changes)
+        self.water_branches[branch_id] = updated
+        return updated
+
+    def remove_water_branch(self, branch_id: str) -> WaterBranch:
+        return self.water_branches.pop(branch_id)
 
 
 def ensure_mep_registry(model: object) -> MEPRegistry:

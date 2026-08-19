@@ -48,12 +48,18 @@ class WaterBranch:
     diameter_m: float
     design_flow_m3_s: float
     length_m: float = 0.0
+    x1_m: float = 0.0
+    y1_m: float = 0.0
+    x2_m: float = 0.0
+    y2_m: float = 0.0
 
     def __post_init__(self):
         if self.service not in {"cold_water", "dhw", "return", "drain"}:
             raise ValueError("unsupported water service")
         if self.diameter_m <= 0 or self.design_flow_m3_s < 0 or self.length_m < 0:
             raise ValueError("invalid water branch dimensions")
+        if min(self.x1_m, self.y1_m, self.x2_m, self.y2_m) < 0:
+            raise ValueError("water branch plan coordinates cannot be negative")
 
 
 @dataclass(frozen=True)
