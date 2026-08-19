@@ -127,7 +127,7 @@ class MEPEngineeringService:
                     "mass_flow_kg_s": requested_mass_flow,
                     "implied_heat_load_w": calculated_heat_load,
                     "heat_load_difference_w": calculated_heat_load - requested_load,
-                }, "Provided room heat load and mass flow are not mutually consistent within 1%.")
+                }, "Provided room heat load and mass flow are inconsistent; they are not mutually consistent within 1%.")
 
         heat_load = requested_load if requested_load is not None else calculated_heat_load
         mass_flow = requested_mass_flow if requested_mass_flow is not None else calculated_mass_flow
