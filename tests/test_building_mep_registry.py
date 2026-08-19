@@ -2,7 +2,7 @@ from dataclasses import replace
 
 from lat_ces.building.mep import ensure_mep_registry
 from lat_ces.building.model import BuildingModel
-from lat_ces.building_model.systems import VentilationOpening
+from lat_ces.building_model.systems import VentilationOpening, WaterBranch
 
 
 def test_building_model_owns_one_mep_registry():
@@ -47,7 +47,36 @@ def test_ventilation_opening_rejects_negative_plan_coordinates():
         VentilationOpening("VO-3", "ROOM-3", "supply", 0.10, 0.05, 0.70, -0.1, 1.0)
 
 
-def test_mep_gui_module_imports_without_creating_a_window():
+def test_water_branch_can_be_created_updated_and_removed():
+    model = BuildingModel(name="Water MEP test")
+    registry = ensure_mep_registry(model)
+    branch = WaterBranch(
+        "WB-1", "ROOM-1", "cold_water", 0.02, 0.0002, 4.0,
+        1.0, 1.0, 4.0, 1.0,
+    )
+    registry.add_water_branch(branch)
+    assert registry.all_water_branches == (branch,)
+
+    updated = registry.update_water_branch(branch.id, diameter_m=0.025, length_m=5.0, x2_m=5.0)
+    assert updated.diameter_m == 0.025
+    assert updated.length_m == 5.0
+    assert updated.x2_m == 5.0
+
+    removed = registry.remove_water_branch(branch.id)
+    assert removed.id == branch.id
+    assert registry.all_water_branches == ()
+
+
+def test_water_branch_rejects_negative_plan_coordinates():
+    import pytest
+
+    with pytest.raises(ValueError, match="coordinates"):
+        WaterBranch("WB-2", "ROOM-2", "dhw", 0.02, 0.0002, 2.0, -0.1, 1.0, 2.0, 1.0)
+
+
+def test_mep_gui_modules_import_without_creating_a_window():
     from lat_ces.gui_mep import MEPEnabledDraftingApp
+    from lat_ces.gui_water import WaterMEPDraftingApp
 
     assert MEPEnabledDraftingApp.__name__ == "MEPEnabledDraftingApp"
+    assert WaterMEPDraftingApp.__name__ == "WaterMEPDraftingApp"
