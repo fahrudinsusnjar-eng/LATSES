@@ -11,7 +11,7 @@ from .orientation import BuildingOrientation
 from .project_spec import BuildingProjectSpec, LevelProjectSpec, RoomSpec, WallConstructionSpec, JoinerySpec, RoofSpec
 from .workflow import BuildingWorkflow
 from .mep import ensure_mep_registry
-from .systems import HeatingZone, VentilationOpening, WaterBranch
+from lat_ces.building_model.systems import HeatingZone, VentilationOpening, WaterBranch
 
 
 def _plan_to_dict(plan: FloorPlan) -> dict[str, object]:
