@@ -20,10 +20,21 @@ def test_heating_zone_can_be_updated_and_removed():
     zone = HeatingZone("HZ-2", "ROOM-2", "radiator", 45.0, 35.0, 21.0)
     registry.add_heating_zone(zone)
 
-    updated = registry.update_heating_zone(zone.id, emitter_type="underfloor", design_supply_temp_c=35.0)
+    updated = registry.update_heating_zone(
+        zone.id,
+        emitter_type="underfloor",
+        design_supply_temp_c=35.0,
+        design_return_temp_c=28.0,
+    )
     assert updated.emitter_type == "underfloor"
     assert updated.design_supply_temp_c == 35.0
-    assert registry.heating_zones[zone.id] == replace(zone, emitter_type="underfloor", design_supply_temp_c=35.0)
+    assert updated.design_return_temp_c == 28.0
+    assert registry.heating_zones[zone.id] == replace(
+        zone,
+        emitter_type="underfloor",
+        design_supply_temp_c=35.0,
+        design_return_temp_c=28.0,
+    )
 
     removed = registry.remove_heating_zone(zone.id)
     assert removed.id == zone.id
