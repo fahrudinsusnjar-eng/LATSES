@@ -40,7 +40,8 @@ def test_load_and_mass_flow_conflict_is_reported():
     result = MEPEngineeringService().calculate_heating(zone)
 
     assert result.status == "INPUT_CONFLICT"
-    assert "difference" in result.values["message"] if isinstance(result.values.get("message"), str) else True
+    assert "inconsistent" in result.message.lower()
+    assert result.values["heat_load_difference_w"] > 0.0
 
 
 def test_building_engineering_report_aggregates_mep_results():
