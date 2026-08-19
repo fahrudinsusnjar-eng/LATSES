@@ -1,84 +1,103 @@
+"""
+LAT-CES Scientific Core
+Dimension Engine & Compound Analysis Implementation Rev A
+"""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-
-def canonical_dimension(L=0, M=0, T=0, I=0, Theta=0, N=0, J=0) -> "Dimension":
-    """Create a canonical Dimension from SI base-dimension exponents."""
-    return Dimension(L=L, M=M, T=T, I=I, Theta=Theta, N=N, J=J)
+from dataclasses import dataclass, field
+from typing import Dict
 
 
 @dataclass(frozen=True)
 class Dimension:
-    """Canonical SI base-dimension exponent vector."""
+    """
+    Represents a physical dimension using exponents of base physical quantities.
+    Example: Velocity = Length^1 * Time^-1
+    """
 
-    L: int = 0
-    M: int = 0
-    T: int = 0
-    I: int = 0
-    Theta: int = 0
-    N: int = 0
-    J: int = 0
+    exponents: Dict[str, int] = field(default_factory=dict)
+
+    @property
+    def name(self) -> str:
+        non_zero = [k for k, v in self.exponents.items() if v != 0]
+        if len(non_zero) == 1 and self.exponents[non_zero[0]] == 1:
+            return non_zero[0].upper()
+        if not non_zero:
+            return "DIMENSIONLESS"
+        return "DERIVED"
+
+    def is_compatible(self, other: "Dimension") -> bool:
+        """Checks if another dimension has identical base exponents."""
+        all_keys = set(self.exponents.keys()).union(set(other.exponents.keys()))
+        for key in all_keys:
+            if self.exponents.get(key, 0) != other.exponents.get(key, 0):
+                return False
+        return True
 
     def __mul__(self, other: "Dimension") -> "Dimension":
-        return canonical_dimension(
-            L=self.L + other.L,
-            M=self.M + other.M,
-            T=self.T + other.T,
-            I=self.I + other.I,
-            Theta=self.Theta + other.Theta,
-            N=self.N + other.N,
-            J=self.J + other.J,
-        )
+        if not isinstance(other, Dimension):
+            raise TypeError("Can only multiply with another Dimension")
+
+        new_exponents = dict(self.exponents)
+        for key, val in other.exponents.items():
+            new_exponents[key] = new_exponents.get(key, 0) + val
+
+        cleaned = {k: v for k, v in new_exponents.items() if v != 0}
+        return Dimension(exponents=cleaned)
 
     def __truediv__(self, other: "Dimension") -> "Dimension":
-        return canonical_dimension(
-            L=self.L - other.L,
-            M=self.M - other.M,
-            T=self.T - other.T,
-            I=self.I - other.I,
-            Theta=self.Theta - other.Theta,
-            N=self.N - other.N,
-            J=self.J - other.J,
-        )
+        if not isinstance(other, Dimension):
+            raise TypeError("Can only divide by another Dimension")
+
+        new_exponents = dict(self.exponents)
+        for key, val in other.exponents.items():
+            new_exponents[key] = new_exponents.get(key, 0) - val
+
+        cleaned = {k: v for k, v in new_exponents.items() if v != 0}
+        return Dimension(exponents=cleaned)
 
     def __pow__(self, power: int | float) -> "Dimension":
-        return canonical_dimension(
-            L=self.L * int(power),
-            M=self.M * int(power),
-            T=self.T * int(power),
-            I=self.I * int(power),
-            Theta=self.Theta * int(power),
-            N=self.N * int(power),
-            J=self.J * int(power),
-        )
-
-    def is_dimensionless(self) -> bool:
-        return all(
-            value == 0
-            for value in (self.L, self.M, self.T, self.I, self.Theta, self.N, self.J)
-        )
+        if not isinstance(power, (int, float)):
+            raise TypeError("Dimension power must be numeric")
+        new_exponents = {k: v * power for k, v in self.exponents.items()}
+        cleaned = {k: v for k, v in new_exponents.items() if v != 0}
+        return Dimension(exponents=cleaned)
 
 
-DIMENSIONLESS = Dimension()
-LENGTH = Dimension(L=1)
-MASS = Dimension(M=1)
-TIME = Dimension(T=1)
-CURRENT = Dimension(I=1)
-TEMPERATURE = Dimension(Theta=1)
-AMOUNT = Dimension(N=1)
-LUMINOUS_INTENSITY = Dimension(J=1)
-VELOCITY = Dimension(L=1, T=-1)
-DENSITY = Dimension(M=1, L=-3)
-ACCELERATION = Dimension(L=1, T=-2)
-FORCE = Dimension(M=1, L=1, T=-2)
-AREA = LENGTH**2
-FLOW_RATE = (LENGTH**3) / TIME
-MASS_FLOW = MASS / TIME
-PRESSURE = MASS / (LENGTH * (TIME**2))
-POWER = (MASS * (LENGTH**2)) / (TIME**3)
-SPECIFIC_HEAT = (LENGTH**2) / (TIME**2) / TEMPERATURE
-HEAT_RATE = POWER
-DYNAMIC_VISCOSITY = MASS / (LENGTH * TIME)
+# =====================================================
+# BASE SI DIMENSIONS REGISTRY
+# =====================================================
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+LENGTH = Dimension(exponents={"length": 1})
+MASS = Dimension(exponents={"mass": 1})
+TIME = Dimension(exponents={"time": 1})
+CURRENT = Dimension(exponents={"current": 1})
+TEMPERATURE = Dimension(exponents={"temperature": 1})
+SUBSTANCE = Dimension(exponents={"substance": 1})
+LUMINOUS_INTENSITY = Dimension(exponents={"luminous_intensity": 1})
+DIMENSIONLESS = Dimension(exponents={})
+
+# Compatibility aliases and commonly used derived dimensions.
+AMOUNT = SUBSTANCE
+VELOCITY = LENGTH / TIME
+ACCELERATION = LENGTH / (TIME**2)
+FORCE = MASS * ACCELERATION
+DENSITY = MASS / (LENGTH**3)
+
+__all__ = [
+    "Dimension",
+    "LENGTH",
+    "MASS",
+    "TIME",
+    "CURRENT",
+    "TEMPERATURE",
+    "SUBSTANCE",
+    "AMOUNT",
+    "LUMINOUS_INTENSITY",
+    "VELOCITY",
+    "ACCELERATION",
+    "FORCE",
+    "DENSITY",
+    "DIMENSIONLESS",
+]
