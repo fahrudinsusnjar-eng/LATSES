@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from uuid import uuid4
 
+from lat_ces.building.floor_plan import Point2D
 from lat_ces.building.mep import ensure_mep_registry
 from lat_ces.building_model.systems import HeatingZone
 from lat_ces.gui_water import WaterMEPDraftingApp
@@ -182,8 +183,8 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
                 continue
             p = room.footprint.origin
             q = room.footprint.max_point
-            x1, y1 = self.model_to_canvas(type("P", (), {"x": p.x, "y": p.y})())
-            x2, y2 = self.model_to_canvas(type("P", (), {"x": q.x, "y": q.y})())
+            x1, y1 = self.model_to_canvas(Point2D(p.x, p.y))
+            x2, y2 = self.model_to_canvas(Point2D(q.x, q.y))
             self.canvas.create_rectangle(x1, y1, x2, y2, outline="#dc2626", dash=(4, 3), width=2)
             self.canvas.create_text(
                 (x1 + x2) / 2,
