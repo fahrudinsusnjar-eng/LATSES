@@ -1,3 +1,4 @@
+from lat_ces.gui_reference_house import ReferenceHouseShowroom
 from lat_ces.reference_house import ReferenceHouse
 
 
@@ -21,12 +22,20 @@ def test_reference_house_is_complete_and_deterministic():
     assert summary.lighting_w > 100
 
 
-def test_heating_circuits_and_comfort_guidance():
+def test_heating_circuits_energy_scenarios_and_comfort_guidance():
     house = ReferenceHouse.default()
     circuits = house.heating_circuits()
     assert len(circuits) == 3
     assert circuits[0].type == "underfloor"
     assert circuits[1].type == "radiator"
     assert circuits[0].delta_t_k == 7.0
+    assert circuits[0].mass_flow_kg_s > 0
+    assert len(house.envelope_scenarios()) == 4
+    assert house.envelope_scenarios()[1]["u_w_m2k"] < house.envelope_scenarios()[0]["u_w_m2k"]
+    assert len(house.glazing_scenarios()) == 3
     assert house.simulation_guidance(0.05).startswith("Vrlo blago")
     assert house.simulation_guidance(0.25).startswith("Visoko")
+
+
+def test_showroom_entrypoint_is_importable():
+    assert ReferenceHouseShowroom.__name__ == "ReferenceHouseShowroom"
