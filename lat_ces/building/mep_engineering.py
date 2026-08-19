@@ -61,6 +61,9 @@ def ensure_engineering_results(registry: object) -> EngineeringResultRegistry:
 class MEPEngineeringService:
     """Dispatch selected MEP objects to canonical scientific calculations."""
 
+    WATER_CP_J_KG_K = 4180.0
+    HEATING_INPUT_REL_TOL = 0.01
+
     def __init__(self, *, water_density_kg_m3: float = 998.2, water_dynamic_viscosity_pa_s: float = 1.002e-3) -> None:
         if water_density_kg_m3 <= 0.0 or water_dynamic_viscosity_pa_s <= 0.0:
             raise ValueError("Water density and dynamic viscosity must be positive")
@@ -128,22 +131,76 @@ class MEPEngineeringService:
     def calculate_heating(self, zone: HeatingZone) -> EngineeringResult:
         delta_t = zone.design_supply_temp_c - zone.design_return_temp_c
         mean_water_temp = (zone.design_supply_temp_c + zone.design_return_temp_c) / 2.0
-        # A HeatingZone currently contains no mass-flow or heat-load input, so a
-        # heat-rate value would require a fabricated assumption. Expose the
-        # thermal input that is actually knowable and explicitly request flow.
-        thermal = ThermalModel()
-        specific_energy_per_kg = thermal.cp * delta_t
+        if delta_t <= 0.0:
+            return EngineeringResult(
+                object_type="heating",
+                object_id=zone.id,
+                status="INPUT_REQUIRED",
+                values={"design_delta_t_k": delta_t},
+                message="Supply temperature must exceed return temperature.",
+            )
+
+        requested_load = zone.room_heat_load_w
+        requested_mass_flow = zone.mass_flow_kg_s
+        calculated_mass_flow = None
+        calculated_heat_load = None
+
+        if requested_load is None and requested_mass_flow is None:
+            return EngineeringResult(
+                object_type="heating",
+                object_id=zone.id,
+                status="INPUT_REQUIRED",
+                values={
+                    "design_delta_t_k": delta_t,
+                    "mean_water_temperature_c": mean_water_temp,
+                    "required_input": "mass_flow_kg_s or room_heat_load_w",
+                },
+                message="Heating heat rate requires mass flow or a room heat load.",
+            )
+
+        if requested_load is not None:
+            calculated_mass_flow = requested_load / (self.WATER_CP_J_KG_K * delta_t)
+
+        if requested_mass_flow is not None:
+            calculated_heat_load = requested_mass_flow * self.WATER_CP_J_KG_K * delta_t
+
+        if requested_load is not None and requested_mass_flow is not None:
+            assert calculated_heat_load is not None
+            tolerance = max(abs(requested_load), 1.0) * self.HEATING_INPUT_REL_TOL
+            if abs(calculated_heat_load - requested_load) > tolerance:
+                return EngineeringResult(
+                    object_type="heating",
+                    object_id=zone.id,
+                    status="INPUT_CONFLICT",
+                    values={
+                        "design_delta_t_k": delta_t,
+                        "mean_water_temperature_c": mean_water_temp,
+                        "room_heat_load_w": requested_load,
+                        "mass_flow_kg_s": requested_mass_flow,
+                        "implied_heat_load_w": calculated_heat_load,
+                        "heat_load_difference_w": calculated_heat_load - requested_load,
+                    },
+                    message="Provided room heat load and mass flow are not mutually consistent within 1%.",
+                )
+            status = "CALCULATED"
+        else:
+            status = "CALCULATED"
+
+        heat_load = requested_load if requested_load is not None else calculated_heat_load
+        mass_flow = requested_mass_flow if requested_mass_flow is not None else calculated_mass_flow
         return EngineeringResult(
             object_type="heating",
             object_id=zone.id,
-            status="INPUT_REQUIRED",
+            status=status,
             values={
                 "design_delta_t_k": delta_t,
                 "mean_water_temperature_c": mean_water_temp,
-                "specific_energy_transfer_j_per_kg": specific_energy_per_kg,
-                "required_input": "mass_flow_kg_s or room_heat_load_w",
+                "cp_j_kg_k": self.WATER_CP_J_KG_K,
+                "room_heat_load_w": heat_load,
+                "mass_flow_kg_s": mass_flow,
+                "emitter_type": zone.emitter_type,
             },
-            message="Heating temperature span is evaluated; heat rate requires mass flow or a room heat load.",
+            message="Heating zone heat rate and mass flow evaluated from the declared design inputs.",
         )
 
     def calculate(self, object_type: str, obj: object) -> EngineeringResult:
