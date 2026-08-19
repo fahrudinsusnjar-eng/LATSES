@@ -14,6 +14,7 @@ from lat_ces.building_model.systems import HeatingZone, VentilationOpening, Wate
 from lat_ces.core.dimensions import DENSITY, DYNAMIC_VISCOSITY, LENGTH, VELOCITY
 from lat_ces.scientific.duct_friction import DuctFrictionModel
 from lat_ces.scientific.pressure_drop import PressureDropModel
+from lat_ces.scientific.quantity import PhysicalQuantity
 
 
 @dataclass(frozen=True)
