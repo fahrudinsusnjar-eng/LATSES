@@ -52,7 +52,7 @@ class Material:
 
 @dataclass
 class Roof:
-    """Building-level roof definition shared by section and 3D views."""
+    """Building-level roof definition shared by section, 3D and structure views."""
 
     roof_type: str = "Nije definisan"
     construction: str = ""
@@ -63,16 +63,28 @@ class Roof:
     width_m: float = 0.0
     slope_deg: float = 0.0
     height_m: float = 0.0
+    dead_load_kpa: float = 0.0
+    snow_load_kpa: float = 0.0
     roof_id: str = field(default_factory=lambda: _id("ROOF"))
 
     def __post_init__(self) -> None:
         if not self.roof_type.strip():
             raise ValueError("Roof.roof_type must not be empty")
-        for name, value in (("length_m", self.length_m), ("width_m", self.width_m), ("height_m", self.height_m)):
+        for name, value in (
+            ("length_m", self.length_m),
+            ("width_m", self.width_m),
+            ("height_m", self.height_m),
+            ("dead_load_kpa", self.dead_load_kpa),
+            ("snow_load_kpa", self.snow_load_kpa),
+        ):
             if value < 0:
                 raise ValueError(f"Roof.{name} must be >= 0")
         if not 0.0 <= self.slope_deg < 90.0:
             raise ValueError("Roof.slope_deg must be between 0 and 90 degrees")
+
+    @property
+    def plan_area_m2(self) -> float:
+        return self.length_m * self.width_m
 
 
 @dataclass
@@ -128,6 +140,13 @@ class Level:
     insulation: str = ""
     cladding: str = ""
     joinery: str = ""
+    facade_finish: str = ""
+    insulation_material: str = ""
+    insulation_thickness_m: float = 0.0
+    interior_plaster_material: str = ""
+    interior_plaster_thickness_m: float = 0.0
+    dead_load_kpa: float = 0.0
+    live_load_kpa: float = 0.0
     rooms: dict[str, Room] = field(default_factory=dict)
     floor_plan: FloorPlan | None = None
 
@@ -136,6 +155,14 @@ class Level:
         if not self.name.strip():
             raise ValueError("Level.name must not be empty")
         for name, value in (("length_m", self.length_m), ("width_m", self.width_m)):
+            if value < 0:
+                raise ValueError(f"Level.{name} must be >= 0")
+        for name, value in (
+            ("insulation_thickness_m", self.insulation_thickness_m),
+            ("interior_plaster_thickness_m", self.interior_plaster_thickness_m),
+            ("dead_load_kpa", self.dead_load_kpa),
+            ("live_load_kpa", self.live_load_kpa),
+        ):
             if value < 0:
                 raise ValueError(f"Level.{name} must be >= 0")
 
@@ -150,6 +177,10 @@ class Level:
     @property
     def volume(self) -> float:
         return sum(room.volume for room in self.rooms.values())
+
+    @property
+    def envelope_thickness_m(self) -> float:
+        return self.insulation_thickness_m + self.interior_plaster_thickness_m
 
     def add_room(self, room: Room) -> Room:
         if room.room_id in self.rooms:
@@ -240,4 +271,8 @@ class BuildingModel:
         for level in self.levels.values():
             if level.floor_plan is not None:
                 findings.extend(level.floor_plan.validate())
+            if level.insulation_thickness_m > 0.0 and not level.insulation_material.strip():
+                findings.append(f"Level {level.level_id}: insulation material nije definisan")
+            if level.interior_plaster_thickness_m > 0.0 and not level.interior_plaster_material.strip():
+                findings.append(f"Level {level.level_id}: interior plaster material nije definisan")
         return findings
