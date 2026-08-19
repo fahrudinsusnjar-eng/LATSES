@@ -45,11 +45,28 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
         except (KeyError, TypeError, ValueError) as exc:
             messagebox.showwarning("LAT-CES — Engineering", str(exc), parent=self)
             return
-        values = "\n".join(f"{key}: {value:.6g}" if isinstance(value, float) else f"{key}: {value}" for key, value in result.values.items())
-        text = f"{result.status}\n{result.message}\n{values}"
+        text = f"{result.status}\n{result.message}\n{self._format_values(result.values)}"
         if self.engineering_result_var is not None:
             self.engineering_result_var.set(text)
         self.status_var.set(f"Engineering rezultat: {object_type} · {object_id} · {result.status}")
+
+    def _build_report(self) -> None:
+        try:
+            report = build_building_engineering_report(self.workflow.model, service=self.engineering_service)
+        except (KeyError, TypeError, ValueError) as exc:
+            messagebox.showwarning("LAT-CES — Engineering Report", str(exc), parent=self)
+            return
+        text = (
+            f"STATUS: {report.status}\n"
+            f"Objekata: {report.result_count} · CALCULATED: {report.calculated_count}\n"
+            f"INPUT_REQUIRED: {report.input_required_count} · CONFLICT: {report.conflict_count}\n"
+            f"Ukupan dovod zraka: {report.total_ventilation_flow_m3_h:.2f} m³/h\n"
+            f"Ukupno grijanje: {report.total_heating_load_w:.2f} W\n"
+            f"Ukupan pad pritiska vode: {report.total_water_pressure_drop_pa:.2f} Pa"
+        )
+        if self.engineering_report_var is not None:
+            self.engineering_report_var.set(text)
+        self.status_var.set(f"Building Engineering Report: {report.status}")
 
     def _select_unified_mep(self, _event: tk.Event | None = None) -> None:
         super()._select_unified_mep(_event)
