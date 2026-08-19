@@ -219,9 +219,10 @@ class MEPEnabledDraftingApp(DraftingLATCESApp):
     def _sync_room_coordinates(self) -> None:
         room_id = self._room_id_from_display()
         room = self._room_map()[room_id]
-        center = room.footprint.center
-        self.vent_x_var.set(f"{center.x:.2f}")
-        self.vent_y_var.set(f"{center.y:.2f}")
+        origin = room.footprint.origin
+        maximum = room.footprint.max_point
+        self.vent_x_var.set(f"{(origin.x + maximum.x) / 2.0:.2f}")
+        self.vent_y_var.set(f"{(origin.y + maximum.y) / 2.0:.2f}")
 
     def draw_floor_plan(self) -> None:
         super().draw_floor_plan()
