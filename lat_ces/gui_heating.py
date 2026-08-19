@@ -1,7 +1,8 @@
 """HeatingZone-enabled drafting GUI for the interactive MEP layer.
 
-HeatingZone is a room-level object. The GUI captures emitter intent and design
-temperatures; heat-load calculations remain in the heating engine.
+HeatingZone is a room-level object. The GUI captures emitter intent, design
+temperatures, and real design heat-load/mass-flow inputs; heat calculations
+remain in the engineering service.
 """
 from __future__ import annotations
 
@@ -30,6 +31,8 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
         self.heating_supply_var = tk.StringVar(master=self, value="35.0")
         self.heating_return_var = tk.StringVar(master=self, value="28.0")
         self.heating_target_var = tk.StringVar(master=self, value="20.0")
+        self.heating_load_var = tk.StringVar(master=self, value="")
+        self.heating_flow_var = tk.StringVar(master=self, value="")
 
         box = ttk.LabelFrame(side, text="MEP — zona grijanja", padding=8)
         box.pack(fill="x", pady=(10, 0))
@@ -49,21 +52,23 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
         self._field(box, "Polaz (°C)", self.heating_supply_var, 2)
         self._field(box, "Povrat (°C)", self.heating_return_var, 3)
         self._field(box, "Cilj prostorije (°C)", self.heating_target_var, 4)
+        self._field(box, "Projektno opterećenje (W)", self.heating_load_var, 5)
+        self._field(box, "Maseni protok (kg/s)", self.heating_flow_var, 6)
 
         add_row = ttk.Frame(box)
-        add_row.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        add_row.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(6, 0))
         ttk.Button(add_row, text="＋ Dodaj zonu", command=self._add_heating_zone).pack(side="left", fill="x", expand=True)
         ttk.Button(add_row, text="Sačuvaj izmjenu", command=self._update_heating_zone).pack(side="left", fill="x", expand=True, padx=(6, 0))
         ttk.Button(add_row, text="Obriši", command=self._delete_heating_zone).pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         self.heating_list = tk.Listbox(box, height=5, exportselection=False)
-        self.heating_list.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        self.heating_list.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(8, 0))
         self.heating_list.bind("<<ListboxSelect>>", self._select_heating_zone)
         ttk.Label(
             box,
-            text="Zona grijanja pripada jednoj prostoriji. Odaberi prostoriju, emiter i projektne temperature; solver računa potrebnu snagu.",
+            text="Unesi projektno opterećenje ili maseni protok. Ako oba postoje, servis provjerava njihovu međusobnu konzistentnost.",
             wraplength=320,
-        ).grid(row=7, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ).grid(row=9, column=0, columnspan=2, sticky="w", pady=(6, 0))
         box.columnconfigure(1, weight=1)
         self._refresh_heating_editor()
 
@@ -84,9 +89,11 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
             self.heating_room_var.set(values[0])
         self.heating_list.delete(0, tk.END)
         for zone in self._heating_registry().all_heating_zones:
+            load = f" · {zone.room_heat_load_w:.0f} W" if zone.room_heat_load_w is not None else ""
+            flow = f" · {zone.mass_flow_kg_s:.4f} kg/s" if zone.mass_flow_kg_s is not None else ""
             self.heating_list.insert(
                 tk.END,
-                f"{zone.id} · {zone.emitter_type} · {zone.design_supply_temp_c:.1f}/{zone.design_return_temp_c:.1f} °C · {zone.room_id}",
+                f"{zone.id} · {zone.emitter_type} · {zone.design_supply_temp_c:.1f}/{zone.design_return_temp_c:.1f} °C{load}{flow} · {zone.room_id}",
             )
 
     def _heating_room_id(self) -> str:
@@ -101,6 +108,19 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
             return float(value)
         except ValueError as exc:
             raise ValueError(f"{label} mora biti broj") from exc
+
+    @staticmethod
+    def _optional_positive(value: str, label: str) -> float | None:
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            number = float(text)
+        except ValueError as exc:
+            raise ValueError(f"{label} mora biti broj") from exc
+        if number <= 0:
+            raise ValueError(f"{label} mora biti > 0")
+        return number
 
     def _zone_from_form(self, zone_id: str) -> HeatingZone:
         supply = self._temperature(self.heating_supply_var.get(), "Polazna temperatura")
@@ -117,6 +137,8 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
             design_supply_temp_c=supply,
             design_return_temp_c=return_temp,
             target_indoor_temp_c=target,
+            room_heat_load_w=self._optional_positive(self.heating_load_var.get(), "Projektno opterećenje"),
+            mass_flow_kg_s=self._optional_positive(self.heating_flow_var.get(), "Maseni protok"),
         )
 
     def _add_heating_zone(self) -> None:
@@ -146,6 +168,8 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
         self.heating_supply_var.set(f"{zone.design_supply_temp_c:.1f}")
         self.heating_return_var.set(f"{zone.design_return_temp_c:.1f}")
         self.heating_target_var.set(f"{zone.target_indoor_temp_c:.1f}")
+        self.heating_load_var.set("" if zone.room_heat_load_w is None else f"{zone.room_heat_load_w:.1f}")
+        self.heating_flow_var.set("" if zone.mass_flow_kg_s is None else f"{zone.mass_flow_kg_s:.6f}")
 
     def _update_heating_zone(self) -> None:
         if not self.heating_selected_id:
@@ -186,10 +210,11 @@ class HeatingMEPDraftingApp(WaterMEPDraftingApp):
             x1, y1 = self.model_to_canvas(Point2D(p.x, p.y))
             x2, y2 = self.model_to_canvas(Point2D(q.x, q.y))
             self.canvas.create_rectangle(x1, y1, x2, y2, outline="#dc2626", dash=(4, 3), width=2)
+            load_label = "" if zone.room_heat_load_w is None else f" · {zone.room_heat_load_w:.0f} W"
             self.canvas.create_text(
                 (x1 + x2) / 2,
                 (y1 + y2) / 2,
-                text=f"GRIJANJE · {zone.emitter_type}\n{zone.design_supply_temp_c:.0f}/{zone.design_return_temp_c:.0f} °C",
+                text=f"GRIJANJE · {zone.emitter_type}\n{zone.design_supply_temp_c:.0f}/{zone.design_return_temp_c:.0f} °C{load_label}",
                 fill="#b91c1c",
                 font=("Segoe UI", 8, "bold"),
             )
