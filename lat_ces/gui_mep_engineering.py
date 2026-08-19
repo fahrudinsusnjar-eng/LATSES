@@ -1,10 +1,9 @@
-"""Unified MEP GUI with engineering calculation dispatch and report display."""
+"""Unified MEP GUI with engineering calculation dispatch and result display."""
 from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from lat_ces.building.engineering_report import build_building_engineering_report
 from lat_ces.building.mep import ensure_mep_registry
 from lat_ces.building.mep_engineering import MEPEngineeringService, ensure_engineering_results
 from lat_ces.gui_mep_workspace import UnifiedMEPWorkspaceApp
@@ -16,7 +15,6 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
     def __init__(self) -> None:
         self.engineering_service = MEPEngineeringService()
         self.engineering_result_var: tk.StringVar | None = None
-        self.engineering_report_var: tk.StringVar | None = None
         super().__init__()
 
     def _build_side_panel(self, side: ttk.Frame) -> None:
@@ -24,11 +22,8 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
         box = ttk.LabelFrame(side, text="MEP — engineering", padding=8)
         box.pack(fill="x", pady=(10, 0), before=self.heating_list.master)
         ttk.Button(box, text="⚙ Izračunaj odabrani", command=self._calculate_selected_mep).pack(fill="x")
-        ttk.Button(box, text="▣ Building Engineering Report", command=self._build_report).pack(fill="x", pady=(6, 0))
         self.engineering_result_var = tk.StringVar(master=self, value="Nema rezultata")
         ttk.Label(box, textvariable=self.engineering_result_var, wraplength=330, justify="left").pack(fill="x", pady=(8, 0))
-        self.engineering_report_var = tk.StringVar(master=self, value="Nema Building Engineering Report rezultata")
-        ttk.Label(box, textvariable=self.engineering_report_var, wraplength=330, justify="left", foreground="#334155").pack(fill="x", pady=(8, 0))
 
     def _selected_object(self):
         if self.mep_selected_ref is None:
@@ -40,13 +35,6 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
         if object_type == "water":
             return object_type, object_id, registry.water_branches[object_id]
         return object_type, object_id, registry.heating_zones[object_id]
-
-    @staticmethod
-    def _format_values(values: dict) -> str:
-        return "\n".join(
-            f"{key}: {value:.6g}" if isinstance(value, float) else f"{key}: {value}"
-            for key, value in values.items()
-        )
 
     def _calculate_selected_mep(self) -> None:
         try:
@@ -89,7 +77,8 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
         if result is None:
             self.engineering_result_var.set("Nema spremljenog engineering rezultata za odabrani objekat.")
             return
-        self.engineering_result_var.set(f"{result.status}\n{result.message}\n{self._format_values(result.values)}")
+        values = "\n".join(f"{key}: {value:.6g}" if isinstance(value, float) else f"{key}: {value}" for key, value in result.values.items())
+        self.engineering_result_var.set(f"{result.status}\n{result.message}\n{values}")
 
     def _delete_unified_mep(self) -> None:
         selected = self.mep_selected_ref
@@ -98,8 +87,6 @@ class EngineeringMEPWorkspaceApp(UnifiedMEPWorkspaceApp):
             ensure_engineering_results(ensure_mep_registry(self.workflow.model)).remove(*selected)
         if self.engineering_result_var is not None:
             self.engineering_result_var.set("Nema rezultata")
-        if self.engineering_report_var is not None:
-            self.engineering_report_var.set("Izvještaj je potrebno ponovo izračunati.")
 
 
 def main() -> None:
