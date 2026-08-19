@@ -21,6 +21,9 @@ def _plan_to_dict(plan: FloorPlan) -> dict[str, object]:
                 "name": wall.name,
                 "wall_id": wall.wall_id,
                 "thickness": wall.thickness,
+                "load_bearing": wall.load_bearing,
+                "material_id": wall.material_id,
+                "tributary_width_m": wall.tributary_width_m,
                 "start": {"x": wall.segment.start.x, "y": wall.segment.start.y},
                 "end": {"x": wall.segment.end.x, "y": wall.segment.end.y},
                 "openings": [asdict(opening) for opening in wall.openings],
@@ -39,6 +42,9 @@ def _plan_from_dict(data: dict[str, object]) -> FloorPlan:
             name=str(wall_data.get("name", "Zid")),
             segment=Segment2D(Point2D(float(start["x"]), float(start["y"])), Point2D(float(end["x"]), float(end["y"]))),
             thickness=float(wall_data.get("thickness", 0.20)),
+            load_bearing=bool(wall_data.get("load_bearing", False)),
+            material_id=str(wall_data["material_id"]) if wall_data.get("material_id") else None,
+            tributary_width_m=float(wall_data.get("tributary_width_m", 0.0)),
         )
         for opening_data in wall_data.get("openings", []):
             opening = Opening(
@@ -97,7 +103,7 @@ def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
     if project_spec is not None:
         project_spec.orientation = workflow.model.orientation
     return {
-        "schema": "LAT-CES-BUILDING-4",
+        "schema": "LAT-CES-BUILDING-5",
         "model": {
             "name": workflow.model.name,
             "model_id": workflow.model.model_id,
@@ -115,6 +121,13 @@ def workflow_to_dict(workflow: BuildingWorkflow) -> dict[str, object]:
                     "insulation": level.insulation,
                     "cladding": level.cladding,
                     "joinery": level.joinery,
+                    "facade_finish": level.facade_finish,
+                    "insulation_material": level.insulation_material,
+                    "insulation_thickness_m": level.insulation_thickness_m,
+                    "interior_plaster_material": level.interior_plaster_material,
+                    "interior_plaster_thickness_m": level.interior_plaster_thickness_m,
+                    "dead_load_kpa": level.dead_load_kpa,
+                    "live_load_kpa": level.live_load_kpa,
                     "floor_plan": _plan_to_dict(level.floor_plan) if level.floor_plan else None,
                 }
                 for level in workflow.model.levels.values()
@@ -162,6 +175,13 @@ def load_workflow(path: str | Path) -> BuildingWorkflow:
             insulation=str(item.get("insulation", "")),
             cladding=str(item.get("cladding", "")),
             joinery=str(item.get("joinery", "")),
+            facade_finish=str(item.get("facade_finish", "")),
+            insulation_material=str(item.get("insulation_material", "")),
+            insulation_thickness_m=float(item.get("insulation_thickness_m", 0.0)),
+            interior_plaster_material=str(item.get("interior_plaster_material", "")),
+            interior_plaster_thickness_m=float(item.get("interior_plaster_thickness_m", 0.0)),
+            dead_load_kpa=float(item.get("dead_load_kpa", 0.0)),
+            live_load_kpa=float(item.get("live_load_kpa", 0.0)),
         ))
         if item.get("floor_plan"):
             level.set_floor_plan(_plan_from_dict(dict(item["floor_plan"])))
