@@ -102,30 +102,36 @@ class ReferenceHouse:
         return self.volume_m3 * self.data["ventilation"]["target_ach"]
 
     def lighting_w(self):
-        t = self.data["lighting"]
-        total = 0.0
+        t = self.data["lighting"]; total = 0.0
         for r in self.conditioned_rooms:
-            if r["name"] in {"Radna soba", "Studio / biblioteka"}:
-                lux = t["work_target_lux"]
-            elif "Kupatilo" in r["name"]:
-                lux = t["bath_target_lux"]
-            elif "Kuhinja" in r["name"]:
-                lux = t["kitchen_target_lux"]
-            elif any(x in r["name"] for x in ("Spavaća", "Roditeljska", "Gostinska")):
-                lux = t["bedroom_target_lux"]
-            else:
-                lux = t["living_target_lux"]
+            if r["name"] in {"Radna soba", "Studio / biblioteka"}: lux = t["work_target_lux"]
+            elif "Kupatilo" in r["name"]: lux = t["bath_target_lux"]
+            elif "Kuhinja" in r["name"]: lux = t["kitchen_target_lux"]
+            elif any(x in r["name"] for x in ("Spavaća", "Roditeljska", "Gostinska")): lux = t["bedroom_target_lux"]
+            else: lux = t["living_target_lux"]
             total += r["area_m2"] * lux * 0.008
         return total
+
+    def envelope_scenarios(self):
+        # Comparative only: explicit assumed layer conductivities; not a code check.
+        scenarios = (("Vuna 12 cm",0.12,0.036),("Vuna 16 cm",0.16,0.036),("Vuna 20 cm",0.20,0.036),("EPS 16 cm",0.16,0.036))
+        results = []
+        for name, thickness, lam in scenarios:
+            r_layer = thickness / lam
+            r_total = 0.13 + r_layer + 0.04
+            results.append({"name":name,"thickness_m":thickness,"r_m2k_w":r_total,"u_w_m2k":1.0/r_total})
+        return tuple(results)
+
+    def glazing_scenarios(self):
+        # Placeholder comparative values are configuration inputs, not manufacturer data.
+        return (('2 stakla',2,2.7),('3 stakla Low-E',3,0.9),('3 stakla Low-E + warm edge',3,0.7))
 
     def summary(self):
         return HouseSummary(self.floor_area_m2, self.volume_m3, self.roof_area_m2, self.wall_area_m2, self.estimate_blocks(), self.slab_concrete_m3(), self.heating_load_w(), self.heating_mass_flow_kg_s(), self.ventilation_m3_h(), self.lighting_w())
 
     def simulation_guidance(self, air_velocity_m_s: float) -> str:
-        if air_velocity_m_s < 0.10:
-            return "Vrlo blago strujanje — uglavnom izvan zone izraženog propuha."
-        if air_velocity_m_s < 0.20:
-            return "Umjereno strujanje — provjeriti položaj usisa/izduva i osjećaj korisnika."
+        if air_velocity_m_s < 0.10: return "Vrlo blago strujanje — uglavnom izvan zone izraženog propuha."
+        if air_velocity_m_s < 0.20: return "Umjereno strujanje — provjeriti položaj usisa/izduva i osjećaj korisnika."
         return "Visoko strujanje — vjerovatna osjetljivost na propuh; potrebno je prilagoditi geometriju ili protok."
 
 __all__ = ["HeatingCircuitResult", "HouseSummary", "ReferenceHouse"]
