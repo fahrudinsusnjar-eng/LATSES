@@ -142,9 +142,39 @@ class MEPEngineeringService:
                 "mean_water_temperature_c": mean_water_temp,
                 "specific_energy_transfer_j_per_kg": specific_energy_per_kg,
                 "required_input": "mass_flow_kg_s or room_heat_load_w",
-            },
-            message="Heating temperature span is evaluated; heat rate requires mass flow or a room heat load.",
-        )
+            }, "Heating heat rate requires mass flow or a room heat load.")
+
+        calculated_mass_flow = None if requested_load is None else requested_load / (self.WATER_CP_J_KG_K * delta_t)
+        calculated_heat_load = None if requested_mass_flow is None else requested_mass_flow * self.WATER_CP_J_KG_K * delta_t
+
+        if requested_load is not None and requested_mass_flow is not None:
+            assert calculated_heat_load is not None
+            tolerance = max(abs(requested_load), 1.0) * self.HEATING_INPUT_REL_TOL
+            if abs(calculated_heat_load - requested_load) > tolerance:
+                return EngineeringResult("heating", zone.id, "INPUT_CONFLICT", {
+                    "design_delta_t_k": delta_t,
+                    "mean_water_temperature_c": mean_water_temp,
+                    "room_heat_load_w": requested_load,
+                    "heat_rate_w": calculated_heat_load,
+                    "heat_rate_kw": calculated_heat_load / 1000.0,
+                    "mass_flow_kg_s": requested_mass_flow,
+                    "implied_heat_load_w": calculated_heat_load,
+                    "heat_load_difference_w": calculated_heat_load - requested_load,
+                }, "Provided room heat load and mass flow are inconsistent; they are not mutually consistent within 1%.")
+
+        heat_load = requested_load if requested_load is not None else calculated_heat_load
+        mass_flow = requested_mass_flow if requested_mass_flow is not None else calculated_mass_flow
+        assert heat_load is not None and mass_flow is not None
+        return EngineeringResult("heating", zone.id, "CALCULATED", {
+            "design_delta_t_k": delta_t,
+            "mean_water_temperature_c": mean_water_temp,
+            "cp_j_kg_k": self.WATER_CP_J_KG_K,
+            "room_heat_load_w": heat_load,
+            "heat_rate_w": heat_load,
+            "heat_rate_kw": heat_load / 1000.0,
+            "mass_flow_kg_s": mass_flow,
+            "emitter_type": zone.emitter_type,
+        }, "Heating zone heat rate and mass flow evaluated from the declared design inputs.")
 
     def calculate(self, object_type: str, obj: object) -> EngineeringResult:
         if object_type == "ventilation" and isinstance(obj, VentilationOpening):
