@@ -88,7 +88,12 @@ class BuildingMaterialCatalog:
         needle = text.casefold().strip()
         if not needle:
             return self.items
-        return tuple(item for item in self.items if needle in item.item_id.casefold() or needle in item.name.casefold())
+        return tuple(
+            sorted(
+                (item for item in self.items if needle in item.item_id.casefold() or needle in item.name.casefold()),
+                key=lambda item: item.item_id,
+            )
+        )
 
     def by_id(self, item_id: str) -> BuildingCatalogItem:
         for item in self.items:
