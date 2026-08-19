@@ -46,7 +46,7 @@ def ensure_engineering_results(registry: object) -> EngineeringResultRegistry:
         results = EngineeringResultRegistry()
         setattr(registry, "engineering_results", results)
     if not isinstance(results, EngineeringResultRegistry):
-        raise TypeError("MEP engineering_results must be an EngineeringResultRegistry")
+        raise TypeError("BuildingModel.mep.engineering_results must be an EngineeringResultRegistry")
     return results
 
 
@@ -62,12 +62,14 @@ class MEPEngineeringService:
 
     def calculate_ventilation(self, opening: VentilationOpening) -> EngineeringResult:
         area = opening.area_m2
-        flow = opening.design_flow_m3_s
         velocity = opening.design_velocity_m_s
         pressure = PressureDropModel(loss_coefficient=1.0, air_density=1.2).compute_pressure_drop(velocity)
         return EngineeringResult("ventilation", opening.id, "CALCULATED", {
-            "area_m2": area, "design_flow_m3_s": flow, "design_flow_m3_h": opening.design_flow_m3_h,
-            "design_velocity_m_s": velocity, "reference_local_pressure_drop_pa": pressure,
+            "area_m2": area,
+            "design_flow_m3_s": opening.design_flow_m3_s,
+            "design_flow_m3_h": opening.design_flow_m3_h,
+            "design_velocity_m_s": velocity,
+            "reference_local_pressure_drop_pa": pressure,
         }, "Ventilation opening evaluated with the canonical pressure-drop model.")
 
     def calculate_water(self, branch: WaterBranch) -> EngineeringResult:
@@ -85,8 +87,12 @@ class MEPEngineeringService:
             length_m=branch.length_m, diameter_m=branch.diameter_m, velocity_m_s=velocity, air_density=self.water_density
         )
         return EngineeringResult("water", branch.id, "CALCULATED", {
-            "cross_section_m2": area, "velocity_m_s": velocity, "reynolds": reynolds, "friction_factor": friction_factor,
-            "pressure_drop_pa": pressure_drop, "water_density_kg_m3": self.water_density,
+            "cross_section_m2": area,
+            "velocity_m_s": velocity,
+            "reynolds": reynolds,
+            "friction_factor": friction_factor,
+            "pressure_drop_pa": pressure_drop,
+            "water_density_kg_m3": self.water_density,
             "dynamic_viscosity_pa_s": self.water_viscosity,
         }, "Water branch evaluated with the canonical Reynolds/Darcy-Weisbach model.")
 
@@ -100,7 +106,8 @@ class MEPEngineeringService:
         requested_mass_flow = zone.mass_flow_kg_s
         if requested_load is None and requested_mass_flow is None:
             return EngineeringResult("heating", zone.id, "INPUT_REQUIRED", {
-                "design_delta_t_k": delta_t, "mean_water_temperature_c": mean_water_temp,
+                "design_delta_t_k": delta_t,
+                "mean_water_temperature_c": mean_water_temp,
                 "required_input": "mass_flow_kg_s or room_heat_load_w",
             }, "Heating heat rate requires mass flow or a room heat load.")
 
@@ -112,9 +119,13 @@ class MEPEngineeringService:
             tolerance = max(abs(requested_load), 1.0) * self.HEATING_INPUT_REL_TOL
             if abs(calculated_heat_load - requested_load) > tolerance:
                 return EngineeringResult("heating", zone.id, "INPUT_CONFLICT", {
-                    "design_delta_t_k": delta_t, "mean_water_temperature_c": mean_water_temp,
-                    "room_heat_load_w": requested_load, "heat_rate_w": calculated_heat_load,
-                    "mass_flow_kg_s": requested_mass_flow, "implied_heat_load_w": calculated_heat_load,
+                    "design_delta_t_k": delta_t,
+                    "mean_water_temperature_c": mean_water_temp,
+                    "room_heat_load_w": requested_load,
+                    "heat_rate_w": calculated_heat_load,
+                    "heat_rate_kw": calculated_heat_load / 1000.0,
+                    "mass_flow_kg_s": requested_mass_flow,
+                    "implied_heat_load_w": calculated_heat_load,
                     "heat_load_difference_w": calculated_heat_load - requested_load,
                 }, "Provided room heat load and mass flow are not mutually consistent within 1%.")
 
@@ -122,9 +133,14 @@ class MEPEngineeringService:
         mass_flow = requested_mass_flow if requested_mass_flow is not None else calculated_mass_flow
         assert heat_load is not None and mass_flow is not None
         return EngineeringResult("heating", zone.id, "CALCULATED", {
-            "design_delta_t_k": delta_t, "mean_water_temperature_c": mean_water_temp,
-            "cp_j_kg_k": self.WATER_CP_J_KG_K, "room_heat_load_w": heat_load, "heat_rate_w": heat_load,
-            "mass_flow_kg_s": mass_flow, "emitter_type": zone.emitter_type,
+            "design_delta_t_k": delta_t,
+            "mean_water_temperature_c": mean_water_temp,
+            "cp_j_kg_k": self.WATER_CP_J_KG_K,
+            "room_heat_load_w": heat_load,
+            "heat_rate_w": heat_load,
+            "heat_rate_kw": heat_load / 1000.0,
+            "mass_flow_kg_s": mass_flow,
+            "emitter_type": zone.emitter_type,
         }, "Heating zone heat rate and mass flow evaluated from the declared design inputs.")
 
     def calculate(self, object_type: str, obj: object) -> EngineeringResult:
