@@ -70,6 +70,8 @@ class HeatingZone:
     design_supply_temp_c: float
     design_return_temp_c: float
     target_indoor_temp_c: float = 20.0
+    room_heat_load_w: float | None = None
+    mass_flow_kg_s: float | None = None
 
     def __post_init__(self):
         if self.emitter_type not in {
@@ -78,6 +80,15 @@ class HeatingZone:
             raise ValueError("unsupported heating emitter")
         if self.design_supply_temp_c <= self.design_return_temp_c:
             raise ValueError("heating supply temperature must exceed return temperature")
+        if self.room_heat_load_w is not None and self.room_heat_load_w <= 0:
+            raise ValueError("room heat load must be positive when provided")
+        if self.mass_flow_kg_s is not None and self.mass_flow_kg_s <= 0:
+            raise ValueError("heating mass flow must be positive when provided")
+        if self.room_heat_load_w is None and self.mass_flow_kg_s is None:
+            return
+        if self.room_heat_load_w is not None and self.mass_flow_kg_s is not None:
+            if self.room_heat_load_w <= 0 or self.mass_flow_kg_s <= 0:
+                raise ValueError("heating load and mass flow must be positive")
 
 
 def group_by_room(items: Iterable[object], attribute: str = "room_id") -> Dict[str, list]:
