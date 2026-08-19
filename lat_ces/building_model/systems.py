@@ -16,12 +16,16 @@ class VentilationOpening:
     diameter_m: float
     design_velocity_m_s: float = 0.05
     elevation_m: float = 0.70
+    x_m: float = 0.0
+    y_m: float = 0.0
 
     def __post_init__(self):
         if self.kind not in {"supply", "extract"}:
             raise ValueError("ventilation opening kind must be 'supply' or 'extract'")
         if self.diameter_m <= 0 or self.design_velocity_m_s <= 0 or self.elevation_m < 0:
             raise ValueError("ventilation opening dimensions must be positive")
+        if self.x_m < 0 or self.y_m < 0:
+            raise ValueError("ventilation opening plan coordinates cannot be negative")
 
     @property
     def area_m2(self) -> float:
