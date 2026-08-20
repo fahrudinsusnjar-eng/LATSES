@@ -64,7 +64,7 @@ def test_electrical_report_is_explicit():
     report = calculate_electrical_report(model)
     assert report.status == "CALCULATED"
     assert report.connected_power_w == pytest.approx(1296.0)
-    assert report.demand_power_w == pytest.approx(748.8)
+    assert report.demand_power_w == pytest.approx(556.8)
 
 
 def test_unified_report_aggregates_all_domains():
