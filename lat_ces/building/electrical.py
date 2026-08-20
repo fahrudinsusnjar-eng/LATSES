@@ -7,6 +7,7 @@ BuildingModel without replacing the project data model.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class ElectricalLoad:
     power_w: float = 0.0
     quantity: int = 1
     demand_factor: float = 1.0
-    load_id: str = field(default_factory=lambda: f"EL-{id(object())}")
+    load_id: str = field(default_factory=lambda: f"EL-{uuid4()}")
 
     @property
     def connected_power_w(self) -> float:
@@ -64,10 +65,11 @@ def ensure_electrical_registry(model) -> ElectricalRegistry:
 def calculate_electrical_report(model) -> ElectricalReport:
     registry = ensure_electrical_registry(model)
     findings: list[str] = []
+    room_ids = {room.room_id for room in model.all_rooms()}
     for load in registry.loads:
         if not load.name.strip():
             findings.append("Electrical load without name")
-        if load.room_id and load.room_id not in {room.room_id for room in model.all_rooms()}:
+        if load.room_id and load.room_id not in room_ids:
             findings.append(f"{load.name}: room_id nije pronađen u BuildingModel-u")
 
     connected = sum(load.connected_power_w for load in registry.loads)
