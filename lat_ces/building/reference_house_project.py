@@ -2,15 +2,17 @@
 
 The adapter imports the existing reference-house specification into the canonical
 BuildingWorkflow as one project with independently selectable levels. Room area
-and room metadata are preserved in BuildingProjectSpec; exact room topology remains
-an explicit later drafting step rather than being guessed from areas.
+and room metadata are preserved in both BuildingProjectSpec and the canonical
+BuildingModel; room topology remains a deterministic placeholder until drafting
+replaces it with user-authored geometry.
 """
 from __future__ import annotations
 
 from math import sqrt
 
 from lat_ces.reference_house import ReferenceHouse
-from .model import BuildingModel, Level, Material, Roof
+from .geometry import Box3D, Point3D
+from .model import BuildingModel, Level, Material, Roof, Room
 from .orientation import BuildingOrientation
 from .project_spec import (
     BuildingProjectSpec,
@@ -33,6 +35,42 @@ def _room_spec(room: dict) -> RoomSpec:
         width_m=width,
         role=str(room.get("orientation", "room")),
     )
+
+
+def _add_reference_rooms(level: Level, room_data: list[dict]) -> None:
+    """Materialize reference-room area/volume into the canonical BuildingModel.
+
+    The reference-house source intentionally does not contain drafted wall topology.
+    Until the drafting layer supplies that topology, rooms are represented as
+    deterministic non-overlapping strips spanning the level length. Their footprint
+    area and height exactly match the reference data, so downstream performance
+    models can use real BuildingModel room identities without inventing dimensions.
+    """
+    y = 0.0
+    for data in room_data:
+        height = float(data.get("height_m", level.height))
+        area = float(data.get("area_m2", 0.0))
+        if height <= 0.0 or area <= 0.0:
+            continue
+        length = level.length_m
+        width = area / length
+        if y + width > level.width_m + 1e-9:
+            raise ValueError(
+                f"Reference room areas exceed level envelope for {level.name}: "
+                f"{y + width:.6g} m > {level.width_m:.6g} m"
+            )
+        level.add_room(
+            Room(
+                name=str(data.get("name", "Prostorija")),
+                footprint=Box3D(
+                    origin=Point3D(0.0, y, level.elevation),
+                    length=length,
+                    width=width,
+                    height=height,
+                ),
+            )
+        )
+        y += width
 
 
 def build_reference_house_workflow() -> BuildingWorkflow:
@@ -94,7 +132,7 @@ def build_reference_house_workflow() -> BuildingWorkflow:
 
     workflow = BuildingWorkflow(model=model, project_spec=project, current_step=3)
     previous = None
-    for index, level_data in enumerate(data["levels"]):
+    for level_data in data["levels"]:
         level = model.add_level(
             Level(
                 name=str(level_data["name"]),
@@ -116,6 +154,7 @@ def build_reference_house_workflow() -> BuildingWorkflow:
             )
         )
         level.set_floor_plan(make_envelope_floor_plan(level.name, level.length_m, level.width_m, 0.25))
+        _add_reference_rooms(level, level_data.get("rooms", []))
         previous = level
 
     roof_data = data["roof"]
