@@ -49,10 +49,27 @@ def _canonical_room_map(workflow: BuildingWorkflow, data: dict) -> dict[str, Roo
     return mapping
 
 
-def _populate_reference_materials(model: BuildingModel) -> None:
-    """Register explicit material properties required by the canonical thermal solver."""
-    model.add_material(Material(name="kamena vuna", density=120.0, thermal_conductivity=0.036))
+def _populate_reference_materials(model: BuildingModel) -> tuple[str, str]:
+    """Register explicit material properties required by the smoke-test solvers.
+
+    The source house gives material families, not verified manufacturer datasets.
+    These values are therefore explicit engineering-test assumptions, not claims
+    about a specific product.
+    """
+    masonry = model.add_material(Material(name="250×200×250 mm family — smoke-test assumption", density=900.0, thermal_conductivity=0.25))
+    insulation = model.add_material(Material(name="kamena vuna", density=120.0, thermal_conductivity=0.036))
     model.add_material(Material(name="vapneno-cementni malter", density=1800.0, thermal_conductivity=0.70))
+    return masonry.material_id, insulation.material_id
+
+
+def _activate_structural_envelope(level: Level, wall_material_id: str) -> None:
+    """Mark the generated envelope walls as preliminary load-bearing test inputs."""
+    if level.floor_plan is None:
+        return
+    for wall in level.floor_plan.walls.values():
+        wall.load_bearing = True
+        wall.material_id = wall_material_id
+        wall.tributary_width_m = 2.0
 
 
 def _populate_reference_engineering_inputs(workflow: BuildingWorkflow, data: dict) -> None:
@@ -100,7 +117,7 @@ def build_reference_house_workflow() -> BuildingWorkflow:
     dimensions = data["dimensions"]
     orientation = BuildingOrientation()
     model = BuildingModel(name=str(data["name"]), model_id=str(data["model_id"]), orientation=orientation)
-    _populate_reference_materials(model)
+    masonry_material_id, _ = _populate_reference_materials(model)
     envelope = data.get("envelope", {})
     wall = envelope.get("exterior_wall", {})
     wall_construction = WallConstructionSpec(block_brand=str(wall.get("masonry_block", "")), wall_thickness_m=0.25, insulation_type=str(wall.get("insulation", "")), insulation_thickness_m=float(wall.get("insulation_thickness_m", 0.0)), exterior_cladding=str(wall.get("facade_finish", "")), interior_cladding=str(wall.get("interior_finish", "")), render_thickness_m=float(wall.get("interior_finish_thickness_m", 0.0)))
@@ -122,6 +139,7 @@ def build_reference_house_workflow() -> BuildingWorkflow:
         joinery = data.get("joinery", {})
         level = model.add_level(Level(name=str(level_data["name"]), elevation=0.0 if previous is None else previous.top_elevation, height=float(dimensions["level_height_m"]), length_m=float(dimensions["length_m"]), width_m=float(dimensions["width_m"]), wall_construction=str(wall.get("masonry_block", "")), insulation=str(wall.get("insulation", "")), cladding=str(wall.get("facade_finish", "")), joinery=str(joinery.get("default_frame", "")), facade_finish=str(wall.get("facade_finish", "")), insulation_material=str(wall.get("insulation", "")), insulation_thickness_m=float(wall.get("insulation_thickness_m", 0.0)), interior_plaster_material=str(wall.get("interior_finish", "")), interior_plaster_thickness_m=float(wall.get("interior_finish_thickness_m", 0.0)), dead_load_kpa=float(level_data.get("loads", {}).get("dead_kpa", 0.0)), live_load_kpa=float(level_data.get("loads", {}).get("live_kpa", 0.0))))
         level.set_floor_plan(make_envelope_floor_plan(level.name, level.length_m, level.width_m, 0.25))
+        _activate_structural_envelope(level, masonry_material_id)
         _add_reference_rooms(level, level_data.get("rooms", []))
         previous = level
     roof_data = data["roof"]
