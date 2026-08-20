@@ -91,23 +91,10 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
 
     # ---------- master layout ----------
     def _install_master_layout(self) -> None:
-        """Keep the engineering viewport central and put tools on the right.
-
-        The legacy top notebook and metric strip are deliberately not packed into
-        the master shell.  The underlying canonical workspace remains available
-        to the existing methods; the master shell exposes those actions through
-        the vertical tool rail instead of consuming the drawing viewport.
-        """
+        """Keep the engineering viewport central and put tools on the right."""
         self._install_command_panel()
         if hasattr(self, "complete_tabs"):
             self.complete_tabs.pack_forget()
-
-    def _existing_body(self):
-        widgets = list(self.winfo_children())
-        for widget in widgets:
-            if widget is not self._master_command_panel and widget is not self._master_metrics_panel and widget is not getattr(self, "complete_tabs", None):
-                return widget
-        return None
 
     def _install_command_panel(self) -> None:
         shell = ttk.LabelFrame(self, text="ALATI", padding=4)
@@ -166,18 +153,6 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         if not hasattr(self, "_master_command_canvas"):
             return
         self._master_command_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def _install_metrics_panel(self) -> None:
-        panel = ttk.LabelFrame(self, text="Matematika / Engineering", padding=8)
-        panel.pack(side="top", fill="x", padx=10, pady=(10, 4))
-        self._master_metrics_panel = panel
-        metrics = (("area", "Površina"), ("volume", "Zapremina"), ("wall", "Dužina zidova"), ("roof", "Krov — tlocrt"), ("levels", "Etaže"), ("rooms", "Prostorije"), ("elements", "Elementi"), ("status", "Status"))
-        for index, (key, label) in enumerate(metrics):
-            panel.columnconfigure(index, weight=1)
-            cell = ttk.Frame(panel); cell.grid(row=0, column=index, sticky="ew", padx=3)
-            ttk.Label(cell, text=label).pack(anchor="w")
-            var = tk.StringVar(value="—"); self._master_metric_vars[key] = var
-            ttk.Label(cell, textvariable=var, font=("Segoe UI", 10, "bold")).pack(anchor="w")
 
     # ---------- model / level switching ----------
     def _select_model(self, _event=None):
@@ -241,17 +216,17 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         self.goto_step()
         self._refresh_master_metrics()
 
-    def _select_complete_tab(self, index: int):
-        if hasattr(self, "complete_tabs") and index < len(self.complete_tabs.tabs()):
-            self.complete_tabs.select(index)
-            self._refresh_master_metrics()
-
-    def _show_catalog_tab(self):
-        if hasattr(self, "complete_tabs") and self.complete_tabs.tabs():
-            self.complete_tabs.select(self.complete_tabs.tabs()[-1])
-
     # ---------- engineering metrics ----------
     def _refresh_master_metrics(self):
+        """Refresh legacy metrics only when their widgets are actually installed.
+
+        The master shell intentionally removes the legacy top metrics strip so the
+        engineering viewport gets the available vertical space.  The old refresh
+        method used to index an empty dict and crash the packaged GUI at startup.
+        """
+        if not self._master_metric_vars:
+            self._refresh_level_context()
+            return
         model = self.workflow.model
         qto = calculate_quantity_takeoff(model)
         self._master_metric_vars["area"].set(f"{qto.floor_area_m2:.2f} m²")
@@ -296,33 +271,30 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         self._refresh_catalog_view()
 
     def _refresh_catalog_view(self):
-        items = self.catalog.search(self.catalog_search_var.get())
-        self.catalog_visible_items = items
+        query = self.catalog_search_var.get().strip().lower()
         self.catalog_list.delete(0, "end")
-        for item in items:
-            marker = " · dimenzije obavezne" if item.requires_dimensions else ""
-            self.catalog_list.insert("end", f"{item.name} [{item.unit}]{marker}")
-        self._set_catalog_detail("Odaberi stavku.\n\nKategorije su parametarske: upiši stvarne mjere/proizvod nakon odabira.\nNormativni proračun ne koristi katalog kao zamjenu za projektne vrijednosti.")
+        self._catalog_items = []
+        for item in self.catalog.search(query):
+            self._catalog_items.append(item)
+            self.catalog_list.insert("end", f"{item.code} — {item.name}")
 
     def _show_catalog_selection(self, _event=None):
         selection = self.catalog_list.curselection()
         if not selection:
             return
-        item = self.catalog_visible_items[selection[0]]
-        text = (f"ID: {item.item_id}\n" f"Naziv: {item.name}\n" f"Jedinica obračuna: {item.unit}\n" f"Dimenzije potrebne: {'DA' if item.requires_dimensions else 'NE'}\n\n" "Proračunski parametri nisu automatski izmišljeni. Za stvarni proizvod unesi ili uvezi verificirane podatke: dimenzije, gustinu, λ/U, čvrstoće, masu i proizvođača.")
-        if item.item_id == "glazing":
-            text += "\n\nStakla: " + ", ".join(option.option_id for option in self.catalog.glazing_options)
-        self._set_catalog_detail(text)
-
-    def _set_catalog_detail(self, value: str):
+        item = self._catalog_items[selection[0]]
+        lines = [f"{item.code} — {item.name}", f"Kategorija: {item.category}"]
+        for key, value in item.properties.items():
+            lines.append(f"{key}: {value}")
         self.catalog_detail.configure(state="normal")
         self.catalog_detail.delete("1.0", "end")
-        self.catalog_detail.insert("1.0", value)
+        self.catalog_detail.insert("1.0", "\n".join(lines))
         self.catalog_detail.configure(state="disabled")
 
 
 def main() -> None:
-    MasterBuildingWorkspaceApp().mainloop()
+    app = MasterBuildingWorkspaceApp()
+    app.mainloop()
 
 
 if __name__ == "__main__":
