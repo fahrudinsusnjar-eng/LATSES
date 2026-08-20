@@ -28,12 +28,17 @@ class BuildingEngineeringReport:
 
     @property
     def status(self) -> str:
+        """Return the status of the requested MEP engineering aggregation.
+
+        Structural, thermal, electrical and quantity-takeoff domains are
+        reported alongside MEP, but missing inputs in those optional domains
+        must not invalidate otherwise calculated MEP results.  Their own
+        status remains available on the corresponding report object.
+        """
         if self.conflict_count:
             return "INPUT_CONFLICT"
-        if self.input_required_count or self.structural.status == "INPUT_REQUIRED" or self.thermal.status == "INPUT_REQUIRED":
+        if self.input_required_count:
             return "INPUT_REQUIRED"
-        if self.electrical.status in {"CHECK", "INPUT_REQUIRED"}:
-            return "CHECK"
         return "CALCULATED"
 
 
