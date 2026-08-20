@@ -65,9 +65,6 @@ def calculate_quantity_takeoff(model: BuildingModel) -> BuildingQuantityTakeoff:
     roof_perimeter = 0.0
     if roof is not None:
         slope_rad = math.radians(roof.slope_deg)
-        # For a rectangular pitched/envelope representation, apply the declared
-        # slope uniformly to the plan projection. This is a take-off quantity,
-        # not a structural roof geometry solver.
         roof_surface = roof_plan_area / max(math.cos(slope_rad), 1e-9)
         roof_perimeter = 2.0 * (roof.length_m + roof.width_m)
 
@@ -80,8 +77,9 @@ def calculate_quantity_takeoff(model: BuildingModel) -> BuildingQuantityTakeoff:
         for level in model.levels.values()
     ))
 
-    element_types = [element.element_type.casefold() for element in model.all_elements()]
-    railing_length = sum(element.geometry.length_x for element in model.all_elements() if "rail" in element.element_type.casefold())
+    elements = model.all_elements()
+    element_types = [element.element_type.casefold() for element in elements]
+    railing_length = sum(element.geometry.length for element in elements if "rail" in element.element_type.casefold())
     timber_or_roof_count = sum(
         1 for element_type in element_types if any(token in element_type for token in ("timber", "roof", "krov", "drvo"))
     )
