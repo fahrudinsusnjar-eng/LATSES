@@ -11,7 +11,9 @@ from __future__ import annotations
 from math import sqrt
 
 from lat_ces.reference_house import ReferenceHouse
+from .electrical import ElectricalLoad, ensure_electrical_registry
 from .geometry import Box3D, Point3D
+from .mep import ensure_mep_registry
 from .model import BuildingModel, Level, Material, Roof, Room
 from .orientation import BuildingOrientation
 from .project_spec import (
@@ -21,6 +23,7 @@ from .project_spec import (
     RoomSpec,
     WallConstructionSpec,
 )
+from lat_ces.building_model.systems import HeatingZone, VentilationOpening, WaterBranch
 from .workflow import BuildingWorkflow, make_envelope_floor_plan
 
 
@@ -71,6 +74,125 @@ def _add_reference_rooms(level: Level, room_data: list[dict]) -> None:
             )
         )
         y += width
+
+
+def _populate_reference_engineering_inputs(workflow: BuildingWorkflow, data: dict) -> None:
+    """Populate canonical BuildingModel-owned MEP/electrical test inputs.
+
+    These are explicit design inputs from the reference-house specification, not
+    measured observations. They exist so the full engineering report exercises the
+    real downstream solvers instead of merely loading a visual fixture.
+    """
+    registry = ensure_mep_registry(workflow.model)
+
+    ventilation_rooms = [
+        "P-LIV", "P-KIT", "P-OFF", "P-GUEST", "S1-MASTER",
+        "S1-STUDY", "S2-STUDIO", "S2-GUEST", "S2-LOUNGE", "S2-GYM",
+    ]
+    # Five supply and five extract terminals, sized to exercise the opening-flow
+    # calculation. Terminal velocity is an opening design input; it is deliberately
+    # distinct from the 0.03 m/s plenum target stored in the reference house.
+    for index, room_id in enumerate(ventilation_rooms):
+        kind = "supply" if index < 5 else "extract"
+        registry.add_ventilation_opening(
+            VentilationOpening(
+                id=f"VO-{index + 1:02d}",
+                room_id=room_id,
+                kind=kind,
+                diameter_m=0.25,
+                design_velocity_m_s=0.50,
+                elevation_m=0.70 if kind == "supply" else 2.40,
+                x_m=1.0,
+                y_m=1.0 + index,
+            )
+        )
+
+    wet_rooms = ["P-KIT", "P-BTH", "S1-BTH", "S2-BTH"]
+    for index, room_id in enumerate(wet_rooms):
+        registry.add_water_branch(
+            WaterBranch(
+                id=f"CW-{index + 1:02d}",
+                room_id=room_id,
+                service="cold_water",
+                diameter_m=0.020,
+                design_flow_m3_s=0.00020,
+                length_m=5.0 + index,
+                x1_m=0.0,
+                y1_m=float(index),
+                x2_m=5.0,
+                y2_m=float(index),
+            )
+        )
+        registry.add_water_branch(
+            WaterBranch(
+                id=f"DR-{index + 1:02d}",
+                room_id=room_id,
+                service="drain",
+                diameter_m=0.050,
+                design_flow_m3_s=0.00050,
+                length_m=4.0 + index,
+                x1_m=5.0,
+                y1_m=float(index),
+                x2_m=9.0,
+                y2_m=float(index),
+            )
+        )
+
+    room_data_by_id = {
+        room["id"]: room
+        for level in data["levels"]
+        for room in level.get("rooms", [])
+    }
+    for circuit in data["heating"]["circuits"]:
+        for room_id in circuit["rooms"]:
+            room = room_data_by_id[room_id]
+            load_w = float(room["area_m2"]) * float(circuit["design_w_per_m2"])
+            registry.add_heating_zone(
+                HeatingZone(
+                    id=f"{circuit['id']}-{room_id}",
+                    room_id=room_id,
+                    emitter_type=str(circuit["type"]),
+                    design_supply_temp_c=float(circuit["supply_c"]),
+                    design_return_temp_c=float(circuit["return_c"]),
+                    target_indoor_temp_c=20.0,
+                    room_heat_load_w=load_w,
+                )
+            )
+
+    electrical = ensure_electrical_registry(workflow.model)
+    lighting = data["lighting"]
+    for level in data["levels"]:
+        for room in level.get("rooms", []):
+            if float(room.get("height_m", 0.0)) <= 0.0:
+                continue
+            name = str(room["name"])
+            if name in {"Radna soba", "Studio / biblioteka"}:
+                lux = float(lighting["work_target_lux"])
+            elif "Kupatilo" in name:
+                lux = float(lighting["bath_target_lux"])
+            elif "Kuhinja" in name:
+                lux = float(lighting["kitchen_target_lux"])
+            elif any(value in name for value in ("Spavaća", "Roditeljska", "Gostinska")):
+                lux = float(lighting["bedroom_target_lux"])
+            else:
+                lux = float(lighting["living_target_lux"])
+            lighting_w = float(room["area_m2"]) * lux * 0.008
+            electrical.add(ElectricalLoad(
+                name=f"Rasvjeta — {name}",
+                kind="lighting",
+                room_id=room["id"],
+                power_w=lighting_w,
+                quantity=1,
+                demand_factor=1.0,
+            ))
+            electrical.add(ElectricalLoad(
+                name=f"Utičnice — {name}",
+                kind="socket",
+                room_id=room["id"],
+                power_w=500.0,
+                quantity=2,
+                demand_factor=0.40,
+            ))
 
 
 def build_reference_house_workflow() -> BuildingWorkflow:
@@ -171,6 +293,7 @@ def build_reference_house_workflow() -> BuildingWorkflow:
             height_m=0.0,
         )
     )
+    _populate_reference_engineering_inputs(workflow, data)
     workflow.active_level_id = next(iter(model.levels), None)
     return workflow
 
