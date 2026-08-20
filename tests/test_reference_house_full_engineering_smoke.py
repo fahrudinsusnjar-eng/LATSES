@@ -1,7 +1,6 @@
 from lat_ces.building.engineering_report import build_building_engineering_report
 from lat_ces.building.mep import ensure_mep_registry
 from lat_ces.building.reference_house_project import build_reference_house_workflow
-from lat_ces.building.reference_house_project import _canonical_room_map
 from lat_ces.building.electrical import ensure_electrical_registry
 from lat_ces.reference_house import ReferenceHouse
 
