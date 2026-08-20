@@ -91,11 +91,16 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
 
     # ---------- master layout ----------
     def _install_master_layout(self) -> None:
+        """Keep the engineering viewport central and put tools on the right.
+
+        The legacy top notebook and metric strip are deliberately not packed into
+        the master shell.  The underlying canonical workspace remains available
+        to the existing methods; the master shell exposes those actions through
+        the vertical tool rail instead of consuming the drawing viewport.
+        """
         self._install_command_panel()
-        self._install_metrics_panel()
         if hasattr(self, "complete_tabs"):
             self.complete_tabs.pack_forget()
-            self.complete_tabs.pack(fill="x", padx=18, pady=(0, 8), before=self._existing_body())
 
     def _existing_body(self):
         widgets = list(self.winfo_children())
@@ -105,9 +110,9 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         return None
 
     def _install_command_panel(self) -> None:
-        shell = ttk.LabelFrame(self, text="Komande", padding=4)
-        shell.pack(side="left", fill="y", padx=(10, 8), pady=10)
-        shell.configure(width=250)
+        shell = ttk.LabelFrame(self, text="ALATI", padding=4)
+        shell.pack(side="right", fill="y", padx=(8, 10), pady=10)
+        shell.configure(width=235)
         shell.pack_propagate(False)
         self._master_command_panel = shell
 
@@ -144,21 +149,18 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
 
         commands = (
             ("Model", lambda: self._master_goto_step(1)),
-            ("Katalog", self._show_catalog_tab),
             ("Tlocrt", lambda: self._master_goto_step(3)),
             ("Presjek", lambda: self._master_goto_step(4)),
             ("3D", lambda: self._master_goto_step(5)),
-            ("Konstrukcija", lambda: self._select_complete_tab(2)),
-            ("MEP", lambda: self._select_complete_tab(4)),
             ("Provjera", self.validate_model),
-            ("Izvještaj", self._calculate_building_report),
+            ("Izvještaj / proračun", self._calculate_building_report),
         )
         for label, callback in commands:
             ttk.Button(inner, text=label, style="LATCES.Secondary.TButton", command=callback).pack(fill="x", pady=2)
 
         ttk.Separator(inner).pack(fill="x", pady=8)
         ttk.Button(inner, text="Osvježi matematiku", style="LATCES.Primary.TButton", command=self._refresh_master_metrics).pack(fill="x")
-        ttk.Label(inner, text="Svaka etaža je zaseban aktivni Level u istom BuildingWorkflow projektu. Promjena etaže ne pravi novi projekat.", wraplength=215, foreground="#475569").pack(fill="x", pady=(10, 6))
+        ttk.Label(inner, text="Svaka etaža je zaseban aktivni Level u istom BuildingWorkflow projektu. Promjena etaže ne pravi novi projekat.", wraplength=205, foreground="#475569").pack(fill="x", pady=(10, 6))
 
     def _master_mousewheel(self, event: tk.Event) -> None:
         if not hasattr(self, "_master_command_canvas"):
