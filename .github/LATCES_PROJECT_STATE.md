@@ -9,8 +9,8 @@
 - **Active engineering branch:** `agent/building-engineering-completion`
 - **Active PR:** `#125 — feat: complete Building Engineering integration over canonical BuildingModel`
 - **PR base:** `main`
-- **Last active branch commit before checkpoint fixes:** `306d73620137342507ba60e63245074e1db097a5`
-- **Checkpoint commits added:** `d44f796c74cc56c2f08231d151b32690d68bf78c`, `99ad8acfa45437c7509b0841d2ee7cfe667a2496`
+- **Current latest branch commit:** `6bcac7229a42c49a946c084511ba38896515dcf`
+- **Latest functional GUI repair commit:** `7c64b75ad4f53611169eda27e7d0fe124e4b6581`
 
 ## Architectural decision already made
 
@@ -24,7 +24,8 @@ PR #125 is the current continuation of the Building Engineering work built on th
 - canonical envelope thermal take-off with refusal to invent missing lambda values;
 - canonical electrical design-intent registry and reporting;
 - unified Building Engineering Report aggregating MEP, QTO, structural, thermal and electrical domains from one BuildingModel;
-- regression coverage for the cross-domain contract.
+- reference-house workflow that materializes the showcase/test house into the canonical BuildingModel and populates structural, MEP, heating and electrical test inputs;
+- master GUI shell with Tlocrt / Presjek / 3D / Provjera / Izvještaj / Reference House commands.
 
 ## Important historical decision — DO NOT RE-OPEN
 
@@ -46,28 +47,49 @@ This decision and implementation were captured in PR #114, which was closed with
 
 Do not create another reference-house resource-loader hotfix unless a new, reproducible failure proves this implementation insufficient.
 
+## Master GUI regression found 2026-08-21 — FIXED, DO NOT LOSE
+
+The Windows installer built from commit `5b3357b6bb495f85a580f33746ac46f809327088` started but crashed during `_install_master_layout` with:
+
+`AttributeError: '_tkinter.tkapp' object has no attribute '_load_reference_house'`
+
+Root cause: `lat_ces/gui_master.py` bound four callbacks in the master command panel (`_load_reference_house`, `_show_view`, `_run_master_validation`, `_show_engineering_report`) without defining them in the final class. CI previously missed this because it only imported/launched the application and did not exercise these callback bindings.
+
+Repair committed:
+
+- `7c64b75ad4f53611169eda27e7d0fe124e4b6581` — restored all four callbacks;
+- `_load_reference_house()` now enters the canonical `build_reference_house_workflow()` into the active workspace and refreshes model/metrics/levels;
+- `_show_view()` routes `plan/section/3d` to canonical view steps;
+- `_run_master_validation()` calls the canonical `validate_model()`;
+- `_show_engineering_report()` calls the canonical Building Engineering Report path;
+- `6bcac7229a42c49a946c084511ba38896515dcf` adds `tests/test_gui_master_contract.py` to lock the callback contract so the exact regression cannot silently return.
+
+The next Windows build must be tested by actually exercising the Reference House command, not merely importing or starting the executable.
+
 ## Current CI interpretation
 
-The previous PR #126 reproduced two already-solved historical issues because it was based on the stale reference-house test contract. Its current failing verification/installer result is **not a new architecture problem**.
+Before the GUI callback repair, commit `5b3357b6...` had:
 
-The correct repair has now been applied to `agent/building-engineering-completion`:
+- Verification #685 — SUCCESS;
+- Windows Installer #539 — SUCCESS;
+- installer artifact existed, but the packaged GUI still contained the untested callback regression above.
 
-1. restore canonical reference-house area semantics and portable resource loading;
-2. replace stale `>350`/broad threshold showcase assertions with deterministic canonical values;
-3. keep this work on PR #125, not in a new parallel hotfix branch.
+Therefore those green checks are **not sufficient release evidence** for the master GUI. The corrected commits must produce a new CI/installer build and the executable must receive a real startup + master-command smoke test.
 
 ## PR hygiene decision
 
-PR #126 (`fix/reference-house-resource-loading`) is a duplicate/stale path and should be closed rather than continued. The active work belongs to PR #125.
+PR #126 (`fix/reference-house-resource-loading`) is a duplicate/stale path and is closed. The active work belongs to PR #125.
 
-## Next technical gate
+## Next technical gate — CURRENT
 
-Run CI on the updated `agent/building-engineering-completion` branch and verify:
+Run CI on the latest `agent/building-engineering-completion` commit and verify:
 
 1. Verification pipeline is green;
 2. Windows Installer workflow is green;
-3. installer/EXE artifact is produced;
-4. resulting artifact is tested before declaring a release-ready build.
+3. the packaged executable starts;
+4. the Reference House command can be invoked without `AttributeError`;
+5. Tlocrt / Presjek / 3D / Provjera / Izvještaj callbacks resolve and execute;
+6. the installer artifact is then accepted as release candidate.
 
 Only after those gates pass should PR #125 be considered for approval/merge.
 
@@ -75,9 +97,9 @@ Only after those gates pass should PR #125 be considered for approval/merge.
 
 Do **not** restart the 338 m² analysis.
 
-Do **not** create another `reference-house` hotfix branch for the same issue.
+Do **not** create another `reference-house` hotfix branch for the same solved resource/area issues.
 
-Do **not** change the model geometry merely to satisfy the obsolete `>350 m²` assertion.
+Do **not** assume a green import-only smoke test proves the master GUI is functional.
 
 Do **not** merge PR #126 as a substitute for PR #125.
 
@@ -99,12 +121,12 @@ This file is the canonical session hand-off record for LAT-CES work.
 
 ## Session checkpoints
 
-### 2026-08-21
+### 2026-08-21 — reference-house contract + master GUI recovery
 
-**Starting point:** PR #125 active; PR #126 was opened against the same `main` base and reintroduced the stale `338 > 350` test failure.
+**Recovered truth:** PR #114 already contained the correct `360 gross / 338 conditioned` area semantics, and PR #126 was a duplicate path. Those decisions are retained on #125.
 
-**Recovered truth:** PR #114 already contained the correct canonical area semantics and acceptance contract; it was closed without merge.
+**New regression found from user-installed artifact:** `gui_master.py` referenced missing master callbacks and crashed at startup.
 
-**Action taken:** carried the PR #114 implementation forward onto `agent/building-engineering-completion` and added this state file.
+**Action taken:** implemented missing callback methods on `agent/building-engineering-completion`, added regression coverage, and updated this checkpoint before proceeding.
 
-**Current next action:** run the updated branch through Verification + Windows Installer, then record the exact CI/installer result here before any merge/review decision.
+**Current exact next action:** run the corrected commit through Verification + Windows Installer, then exercise the packaged GUI command path and record the result here.
