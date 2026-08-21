@@ -84,6 +84,32 @@ The newest commit must produce a new Verification + Windows Installer pair, foll
 
 PR #126 (`fix/reference-house-resource-loading`) is a duplicate/stale path and is closed. The active work belongs to PR #125.
 
+## Recovery-history policy — ADDED 2026-08-21
+
+This file is the first recovery document to consult when continuing LAT-CES work. It is intended to preserve not only the current state but also the analysis already performed, so a future session does not repeat historical searches unnecessarily.
+
+The recovery chain established so far is:
+
+`abd49fa` → start of Verification workflow history
+
+`86aa38f` → CI repair point
+
+`f7e0ddc` → removal of the old workflow path
+
+`170ec750` → scientific regression-test checkpoint
+
+`f132f28f` → canonical recovery checkpoint containing the persistent project-state record
+
+`f416303...` → current Building Engineering / GUI repair line
+
+Known GUI/Installer recovery facts are retained here even when the corresponding work is not yet proven to be present on `main`.
+
+Previously inspected workflow/action run references include Windows/Installer-related runs `31947187549` and `32483224112`; these remain historical evidence to correlate with their exact commit/workflow metadata during the next read-only Actions pass.
+
+**Rule:** do not infer that a feature is lost merely because it is absent from `main`. First record its branch/commit/workflow provenance here, then compare against `main`.
+
+**Rule:** do not restart completed historical investigations unless a new contradiction appears.
+
 ## Next technical gate — CURRENT
 
 Run CI on the newest `agent/building-engineering-completion` commit and verify:
@@ -124,6 +150,14 @@ After every meaningful work session, update this file with:
 This file is the canonical session hand-off record for LAT-CES work.
 
 ## Session checkpoints
+
+### 2026-08-21 — recovery history + GUI/Installer provenance
+
+**Recovered truth:** the project already has a persistent recovery checkpoint at `f132f28f`. The active continuation is `agent/building-engineering-completion` / PR #125, with latest known branch commit `f416303...`. The GUI repair chain and its regression evidence are preserved above.
+
+**Actions recorded:** established that future sessions should start from this project-state file; recorded the Verification history anchors `abd49fa`, `86aa38f`, `f7e0ddc`, `170ec750`, the recovery checkpoint `f132f28f`, and the two historical Actions run IDs supplied during recovery.
+
+**Current exact next action:** perform the read-only GitHub Actions/PR correlation for the newest GUI/Installer line, then run the newest commit through Verification + Windows Installer and exercise the packaged GUI before any merge decision.
 
 ### 2026-08-21 — reference-house contract + master GUI recovery
 
