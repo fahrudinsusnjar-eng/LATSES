@@ -4,14 +4,14 @@
   "integration_branch": "main",
   "active_branch": "agent/building-engineering-completion",
   "active_pr": 125,
-  "current_head": "6bcac7229a42c49a946c084511ba38896515dcf6",
+  "current_head": "a32c2df12308ca0bdf1df876d91434f6acc01c22",
   "last_functional_gui_repair": "7c64b75ad4f53611169eda27e7d0fe124e4b6581",
   "release_status": "candidate_not_released",
   "current_ci": {
     "verification_run": 688,
-    "verification_status": "in_progress",
+    "verification_status": "rerun_due_to_checkpoint_commits",
     "windows_installer_run": 542,
-    "windows_installer_status": "in_progress"
+    "windows_installer_status": "rerun_due_to_checkpoint_commits"
   },
   "canonical_decisions": [
     "BuildingModel is the single source of truth.",
@@ -30,12 +30,12 @@
     "MEP engineering registry/reporting",
     "electrical design-intent registry/reporting",
     "master GUI shell with plan/section/3D/validation/report commands",
-    "master GUI callback regression fix"
+    "master GUI callback regression fix",
+    "persistent GitHub session recovery protocol"
   ],
-  "current_blocker": "Waiting for corrected Verification and Windows Installer runs; then exercise packaged Reference House command and other master callbacks.",
+  "current_blocker": "Need fresh CI results for the latest checkpoint commit, then exercise the packaged Reference House command and other master callbacks.",
   "next_actions": [
-    "Confirm Verification #688 result.",
-    "Confirm Windows Installer #542 result.",
+    "Confirm latest Verification and Windows Installer runs for the current head.",
     "Download newest installer artifact from the corrected commit.",
     "Run packaged executable and click Reference House.",
     "Exercise Tlocrt, Presjek, 3D, Provjera and Izvještaj callbacks.",
@@ -45,6 +45,7 @@
     "read_first": [
       ".github/LATCES_PROJECT_STATE.json",
       ".github/LATCES_PROJECT_STATE.md",
+      ".github/LATCES_SESSION_PROTOCOL.md",
       "active PR metadata",
       "latest commit CI status"
     ],
