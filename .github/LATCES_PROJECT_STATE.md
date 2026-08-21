@@ -9,8 +9,8 @@
 - **Active engineering branch:** `agent/building-engineering-completion`
 - **Active PR:** `#125 — feat: complete Building Engineering integration over canonical BuildingModel`
 - **PR base:** `main`
-- **Current latest branch commit:** `6bcac7229a42c49a946c084511ba38896515dcf`
-- **Latest functional GUI repair commit:** `7c64b75ad4f53611169eda27e7d0fe124e4b6581`
+- **Current latest branch commit:** `f416303eef5284235a26ca3c6f0a7b39a495e829`
+- **Latest GUI repair commits:** `7c64b75ad4f53611169eda27e7d0fe124e4b6581`, `ae3ac2c7acd8ab4228b62e9420ebfb1b387733a4`, `f416303eef5284235a26ca3c6f0a7b39a495e829`
 
 ## Architectural decision already made
 
@@ -25,7 +25,8 @@ PR #125 is the current continuation of the Building Engineering work built on th
 - canonical electrical design-intent registry and reporting;
 - unified Building Engineering Report aggregating MEP, QTO, structural, thermal and electrical domains from one BuildingModel;
 - reference-house workflow that materializes the showcase/test house into the canonical BuildingModel and populates structural, MEP, heating and electrical test inputs;
-- master GUI shell with Tlocrt / Presjek / 3D / Provjera / Izvještaj / Reference House commands.
+- master GUI shell with Tlocrt / Presjek / 3D / Provjera / Izvještaj / Reference House commands;
+- master GUI regression coverage and the catalog-tab parent-container repair.
 
 ## Important historical decision — DO NOT RE-OPEN
 
@@ -47,34 +48,37 @@ This decision and implementation were captured in PR #114, which was closed with
 
 Do not create another reference-house resource-loader hotfix unless a new, reproducible failure proves this implementation insufficient.
 
-## Master GUI regression found 2026-08-21 — FIXED, DO NOT LOSE
+## Master GUI regressions found 2026-08-21 — FIXED, DO NOT LOSE
 
-The Windows installer built from commit `5b3357b6bb495f85a580f33746ac46f809327088` started but crashed during `_install_master_layout` with:
+### Regression A — missing callbacks
+
+The Windows installer built from commit `5b3357b6bb495f85a580f33746ac46f809327088` crashed during `_install_master_layout` with:
 
 `AttributeError: '_tkinter.tkapp' object has no attribute '_load_reference_house'`
 
-Root cause: `lat_ces/gui_master.py` bound four callbacks in the master command panel (`_load_reference_house`, `_show_view`, `_run_master_validation`, `_show_engineering_report`) without defining them in the final class. CI previously missed this because it only imported/launched the application and did not exercise these callback bindings.
+Root cause: `lat_ces/gui_master.py` bound four callbacks in the master command panel without defining them in the final class.
 
-Repair committed:
+Repair: `7c64b75ad4f53611169eda27e7d0fe124e4b6581` restored the callbacks; `6bcac7229a42c49a946c084511ba38896515dcf6` added regression coverage.
 
-- `7c64b75ad4f53611169eda27e7d0fe124e4b6581` — restored all four callbacks;
-- `_load_reference_house()` now enters the canonical `build_reference_house_workflow()` into the active workspace and refreshes model/metrics/levels;
-- `_show_view()` routes `plan/section/3d` to canonical view steps;
-- `_run_master_validation()` calls the canonical `validate_model()`;
-- `_show_engineering_report()` calls the canonical Building Engineering Report path;
-- `6bcac7229a42c49a946c084511ba38896515dcf` adds `tests/test_gui_master_contract.py` to lock the callback contract so the exact regression cannot silently return.
+### Regression B — wrong catalog tab container
 
-The next Windows build must be tested by actually exercising the Reference House command, not merely importing or starting the executable.
+The next user-installed build reached `_install_catalog_tab()` and crashed with:
+
+`AttributeError: '_tkinter.tkapp' object has no attribute 'tabs'`
+
+Root cause: the master GUI creates the canonical notebook as `complete_tabs`, but `_install_catalog_tab()` referenced `self.tabs`.
+
+Repair: `ae3ac2c7acd8ab4228b62e9420ebfb1b387733a4` changed the catalog method to use `self.complete_tabs` with a legacy fallback only when that attribute does not exist.
+
+Regression coverage: `f416303eef5284235a26ca3c6f0a7b39a495e829` extends `tests/test_gui_master_contract.py` to lock the catalog callback and canonical tab-container contract.
+
+**Important:** CI previously proved import/startup only. These two user-installed crashes prove that release validation must exercise the actual master GUI initialization path.
 
 ## Current CI interpretation
 
-Before the GUI callback repair, commit `5b3357b6...` had:
+Verification #688 and Windows Installer #542 were GREEN for the callback-repair line before Regression B was found from the user-installed artifact. Those green results are therefore not release evidence for the current GUI line.
 
-- Verification #685 — SUCCESS;
-- Windows Installer #539 — SUCCESS;
-- installer artifact existed, but the packaged GUI still contained the untested callback regression above.
-
-Therefore those green checks are **not sufficient release evidence** for the master GUI. The corrected commits must produce a new CI/installer build and the executable must receive a real startup + master-command smoke test.
+The newest commit must produce a new Verification + Windows Installer pair, followed by direct packaged-GUI smoke testing.
 
 ## PR hygiene decision
 
@@ -82,13 +86,13 @@ PR #126 (`fix/reference-house-resource-loading`) is a duplicate/stale path and i
 
 ## Next technical gate — CURRENT
 
-Run CI on the latest `agent/building-engineering-completion` commit and verify:
+Run CI on the newest `agent/building-engineering-completion` commit and verify:
 
 1. Verification pipeline is green;
 2. Windows Installer workflow is green;
 3. the packaged executable starts;
-4. the Reference House command can be invoked without `AttributeError`;
-5. Tlocrt / Presjek / 3D / Provjera / Izvještaj callbacks resolve and execute;
+4. master GUI initialization completes without `AttributeError`;
+5. Reference House, Tlocrt, Presjek, 3D, Provjera, Izvještaj and Materijali paths can be invoked;
 6. the installer artifact is then accepted as release candidate.
 
 Only after those gates pass should PR #125 be considered for approval/merge.
@@ -125,8 +129,8 @@ This file is the canonical session hand-off record for LAT-CES work.
 
 **Recovered truth:** PR #114 already contained the correct `360 gross / 338 conditioned` area semantics, and PR #126 was a duplicate path. Those decisions are retained on #125.
 
-**New regression found from user-installed artifact:** `gui_master.py` referenced missing master callbacks and crashed at startup.
+**New regressions found from user-installed artifacts:** missing master callbacks, then wrong master catalog tab container.
 
-**Action taken:** implemented missing callback methods on `agent/building-engineering-completion`, added regression coverage, and updated this checkpoint before proceeding.
+**Actions taken:** repaired callbacks, repaired notebook parent selection, added regression tests for both, and updated this checkpoint before proceeding.
 
-**Current exact next action:** run the corrected commit through Verification + Windows Installer, then exercise the packaged GUI command path and record the result here.
+**Current exact next action:** run the newest commit through Verification + Windows Installer, then exercise the packaged GUI initialization and command paths and record the result here.
