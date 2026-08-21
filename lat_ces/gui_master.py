@@ -29,6 +29,43 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         self._refresh_master_metrics()
         self._refresh_level_selector()
 
+    # ---------- reference-house / master commands ----------
+    def _load_reference_house(self) -> None:
+        """Replace the current model with the canonical reference-house workflow."""
+        self.workflow = build_reference_house_workflow()
+        self.view_step.set(3)
+        self.workflow.current_step = 3
+        self.workflow.active_level_id = next(iter(self.workflow.model.levels), None)
+        self._refresh_complete_tabs()
+        self._refresh_master_metrics()
+        self._refresh_level_selector()
+        self.refresh_view()
+        self.status_var.set("Referentna kuća učitana — 3 etaže / canonical BuildingModel")
+
+    def _show_view(self, view: str) -> None:
+        """Route master-view commands to the canonical workspace view selector."""
+        step_by_view = {"plan": 3, "section": 4, "3d": 5}
+        step = step_by_view.get(view)
+        if step is None:
+            raise ValueError(f"Nepoznat prikaz: {view}")
+        self.view_step.set(step)
+        self.workflow.current_step = step
+        self.goto_step()
+        self._refresh_master_metrics()
+
+    def _run_master_validation(self) -> None:
+        """Run the canonical BuildingModel validation from the master command panel."""
+        self.validate_model()
+        self._refresh_master_metrics()
+
+    def _show_engineering_report(self) -> None:
+        """Run the canonical engineering report and focus the calculation tab."""
+        self._calculate_building_report()
+        if hasattr(self, "complete_tabs"):
+            tabs = self.complete_tabs.tabs()
+            if len(tabs) > 3:
+                self.complete_tabs.select(3)
+
     # ---------- screen adaptation ----------
     def _install_window_adaptation(self) -> None:
         self.resizable(True, True)
