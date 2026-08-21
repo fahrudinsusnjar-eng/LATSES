@@ -29,7 +29,6 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         self._refresh_master_metrics()
         self._refresh_level_selector()
 
-    # ---------- reference-house / master commands ----------
     def _load_reference_house(self) -> None:
         """Replace the current model with the canonical reference-house workflow."""
         self.workflow = build_reference_house_workflow()
@@ -66,7 +65,6 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
             if len(tabs) > 3:
                 self.complete_tabs.select(3)
 
-    # ---------- screen adaptation ----------
     def _install_window_adaptation(self) -> None:
         self.resizable(True, True)
         self._fullscreen = False
@@ -117,7 +115,6 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
             self.after_cancel(self._resize_after_id)
         self._resize_after_id = self.after(120, self._fit_to_screen_if_needed)
 
-    # ---------- master layout ----------
     def _install_master_layout(self) -> None:
         self._master_command_panel = ttk.Frame(self, width=220, padding=8)
         self._master_command_panel.pack(side="right", fill="y", padx=(8, 0))
@@ -165,10 +162,10 @@ class MasterBuildingWorkspaceApp(CompleteBuildingWorkspaceApp):
         self._level_room_text.insert("1.0", "\n".join(lines) or "Nema etaža/prostorija.")
         self._level_room_text.configure(state="disabled")
 
-    # ---------- catalog ----------
     def _install_catalog_tab(self) -> None:
-        tab = ttk.Frame(self.tabs, padding=8)
-        self.tabs.add(tab, text="Materijali")
+        parent = self.complete_tabs if hasattr(self, "complete_tabs") else self.tabs
+        tab = ttk.Frame(parent, padding=8)
+        parent.add(tab, text="Materijali")
         toolbar = ttk.Frame(tab)
         toolbar.pack(fill="x", pady=(0, 8))
         self.catalog_search_var = tk.StringVar()
