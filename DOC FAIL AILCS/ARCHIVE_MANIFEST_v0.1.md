@@ -1,31 +1,28 @@
-# AILCS Archive Manifest v0.1
+# AILCS Archive Manifest v0.2
 
-Date: 2026-09-11
+**Project:** AILCS  
+**Archive boundary:** DOC FAIL AILCS/  
+**Status:** Current verified source set archived at source-control level
 
-## Purpose
-This manifest records the first verified AILCS-specific source set staged in `DOC FAIL AILCS/`.
+## Verified AILCS source set
 
-## Verified AILCS source files from Library
-- Tehnička arhitektura AI obrazovne platforme.png
-- AILCS: Tehnička arhitektura učenja i kompetencija.png
-- Arhitektura BIH AI obrazovnog sistema.png
-- Cjelokupna arhitektura AILCS sistema.png
-- AILCS: Arhitektura državnog obrazovnog sistema.png
-- Arhitektura AI obrazovnog sistema BiH.png
-- Tehnička arhitektura BIH AI sistema učenja.png
-- Tehnička arhitektura AI platforme za učenje(1).png
+1. `Tehnička arhitektura AI obrazovne platforme.png` → AILCS-SRC-001
+2. `AILCS: Tehnička arhitektura učenja i kompetencija.png` → AILCS-SRC-002
+3. `Arhitektura BIH AI obrazovnog sistema.png` → AILCS-SRC-003
+4. `Arhitektura AI obrazovnog sistema BiH.png` → AILCS-SRC-004
+5. `AILCS: Arhitektura državnog obrazovnog sistema.png` → AILCS-SRC-005
+6. `Tehnička arhitektura BIH AI sistema učenja.png` → AILCS-SRC-006
+7. `Tehnička arhitektura AI platforme za učenje(1).png` → AILCS-SRC-007
+8. `Cjelokupna arhitektura AILCS sistema.png` → AILCS-SRC-008
 
-## Archive classification
-SOURCE — original Library material. No item in this manifest is declared a final normative AILCS requirement solely by being archived here.
+## Extraction state
 
-## Known boundary
-The current GitHub branch is physically under the LATSES repository, but this directory is explicitly controlled as an independent AILCS document area. AILCS and LATCES/LATSES remain separate projects.
+All eight currently verified sources have a corresponding original-requirements extraction document.
 
-## Next archive stages
-1. Add all verified AILCS source documents from Library.
-2. Add source IDs and provenance records.
-3. Add reconstruction register.
-4. Add extracted original requirements.
-5. Map requirements to P1–P4.
-6. Close status/action register.
-7. Only then produce final AILCS documentation.
+## Important boundary
+
+The archive does not declare any source a final normative specification. Source evidence, reconstruction and proposed design remain separate.
+
+## Next stage
+
+P1–P4 mapping and cross-source reconciliation are now the next controlled activities. Final AILCS documentation remains blocked until the reconstruction register is closed.
