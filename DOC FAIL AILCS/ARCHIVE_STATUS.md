@@ -40,7 +40,7 @@ Branch/directory history is not treated as proof that LATCES and AILCS are the s
 
 - 674 original source records reviewed together.
 - 7 exact normalized overlap groups identified.
-- 21 additional high-similarity overlap candidates recorded.
+- 20 additional high-similarity overlap candidates recorded.
 - 6 conflict/difference candidates recorded; no unsupported contradiction declared.
 - 12 not-yet-evidenced areas recorded.
 - Duplicate/overlap, conflict/difference and not-yet-evidenced registers created.
