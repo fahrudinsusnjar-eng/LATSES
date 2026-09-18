@@ -1,6 +1,6 @@
-# AILCS Archive Status v0.2
+# AILCS Archive Status v0.3
 
-**Status:** SOURCE EXTRACTION PHASE COMPLETE FOR CURRENT VERIFIED 8-SOURCE SET
+**Status:** PHASE 3 COMPLETE — CROSS-SOURCE CONSOLIDATION ANALYSIS COMPLETE
 
 ## Repository boundary
 
@@ -36,14 +36,19 @@ Branch/directory history is not treated as proof that LATCES and AILCS are the s
 - One consolidated P1–P4 mapping register created.
 - P4 remains source-level only; cross-source confirmation is intentionally pending.
 
+## Phase 3 — Cross-source consolidation
+
+- 674 original source records reviewed together.
+- 7 exact normalized overlap groups identified.
+- 21 additional high-similarity overlap candidates recorded.
+- 6 conflict/difference candidates recorded; no unsupported contradiction declared.
+- 12 not-yet-evidenced areas recorded.
+- Duplicate/overlap, conflict/difference and not-yet-evidenced registers created.
+
 ## Not yet completed
 
-- Cross-source consolidation.
-- Duplicate/overlap analysis.
-- Contradiction/conflict register.
-- Missing-requirement analysis.
-- Status/action closure.
-- Reconstruction register closure.
+- STATUS → AKCIJA closure for consolidated clusters.
+- Reconstruction Register closure.
 - Final AILCS documentation.
 
 ## Control principle
