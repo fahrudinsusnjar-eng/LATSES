@@ -18,13 +18,13 @@
 | AILCS-SRC-001 | Tehnička arhitektura AI obrazovne platforme.png | 62 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-002 | AILCS: Tehnička arhitektura učenja i kompetencija.png | 46 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-003 | Arhitektura BIH AI obrazovnog sistema.png | 101 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
-| AILCS-SRC-004 | Arhitektura AI obrazovnog sistema BiH.png | 0 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
+| AILCS-SRC-004 | Arhitektura AI obrazovnog sistema BiH.png | 50 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-005 | AILCS: Arhitektura državnog obrazovnog sistema.png | 275 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-006 | Tehnička arhitektura BIH AI sistema učenja.png | 46 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-007 | Tehnička arhitektura AI platforme za učenje(1).png | 40 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 | AILCS-SRC-008 | Cjelokupna arhitektura AILCS sistema.png | 54 | COMPLETE | COMPLETE | COMPLETE | SOURCE-LEVEL / CROSS-SOURCE PENDING |
 
-**Total source records mapped:** 624
+**Total source records mapped:** 674
 
 ## Control rule
 
