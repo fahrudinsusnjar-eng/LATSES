@@ -28,9 +28,16 @@ Branch/directory history is not treated as proof that LATCES and AILCS are the s
 7. AILCS-SRC-007
 8. AILCS-SRC-008
 
+## Phase 2 — P1–P4 mapping
+
+- P1–P4 mapping for AILCS-SRC-001 through AILCS-SRC-008: **COMPLETE at source-level**.
+- Total original source records mapped: **674**.
+- One P1–P4 mapping document created per SOURCE-ID.
+- One consolidated P1–P4 mapping register created.
+- P4 remains source-level only; cross-source confirmation is intentionally pending.
+
 ## Not yet completed
 
-- P1–P4 mapping.
 - Cross-source consolidation.
 - Duplicate/overlap analysis.
 - Contradiction/conflict register.
@@ -38,12 +45,6 @@ Branch/directory history is not treated as proof that LATCES and AILCS are the s
 - Status/action closure.
 - Reconstruction register closure.
 - Final AILCS documentation.
-
-## Next controlled phase
-
-Because the current eight-source extraction set is complete, the next phase can process **multiple sources in one batch**:
-
-**P1–P4 mapping for SRC-001 through SRC-008**, followed by a cross-source comparison and a list of unresolved/missing items.
 
 ## Control principle
 
