@@ -1,62 +1,69 @@
-# AILCS — SOURCE-ID REGISTER v0.1
+# AILCS — SOURCE-ID REGISTER v0.2
 
-**Status:** Working register — source inventory stage  
-**Date:** 2026-09-11  
-**Project boundary:** AILCS only
+**Status:** Controlled source register — original-source extraction stage  
+**Project boundary:** AILCS only  
+**Last update:** 2026-09-18
 
 ## 1. Purpose
 
-This register assigns a stable `SOURCE-ID` to each AILCS source that has been identified and source-level verified in the available Library material.
+This register assigns a stable SOURCE-ID to each verified AILCS source and tracks whether original-source extraction has been completed.
 
-The register is an evidence-control document. It does **not** create new requirements and does **not** treat reconstructed or proposed architecture as original requirements.
+**Control sequence:**
+INVENTAR → SOURCE-ID → ORIGINALNI ZAHTJEVI → P1–P4 → STATUS → AKCIJA → register closure → final AILCS documentation.
 
 ## 2. Project boundary
 
 **AILCS ≠ LATCES/LATSES.**
 
-Material belonging to LATCES/LATSES, including engineering, HVAC, Living Air Twin, or other LAT-specific documentation, is excluded unless independent evidence establishes that it is an AILCS source.
+LATCES/LATSES, HVAC, Living Air Twin and other LAT material are excluded unless independently verified as AILCS source material.
 
-## 3. Source register
+## 3. Current verified source register
 
-| SOURCE-ID | Original filename | Type | Source | Classification | Verification | Requirements extracted | P1–P4 mapping | Action |
+| SOURCE-ID | Original filename | Type | Classification | Verification | Original extraction | P1–P4 | Status | Action |
 |---|---|---|---|---|---|---|---|---|
-| AILCS-SRC-001 | `Tehnička arhitektura AI obrazovne platforme.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-002 | `AILCS: Tehnička arhitektura učenja i kompetencija.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-003 | `Arhitektura BIH AI obrazovnog sistema.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-004 | `Cjelokupna arhitektura AILCS sistema.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-005 | `AILCS: Arhitektura državnog obrazovnog sistema.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-006 | `Arhitektura AI obrazovnog sistema BiH.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-007 | `Tehnička arhitektura BIH AI sistema učenja.png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
-| AILCS-SRC-008 | `Tehnička arhitektura AI platforme za učenje(1).png` | IMAGE | Library | AILCS-SOURCE | VERIFIED | Pending detailed extraction | Pending | Extract source content |
+| AILCS-SRC-001 | Tehnička arhitektura AI obrazovne platforme.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-002 | AILCS: Tehnička arhitektura učenja i kompetencija.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-003 | Arhitektura BIH AI obrazovnog sistema.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-004 | Arhitektura AI obrazovnog sistema BiH.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-005 | AILCS: Arhitektura državnog obrazovnog sistema.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-006 | Tehnička arhitektura BIH AI sistema učenja.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-007 | Tehnička arhitektura AI platforme za učenje(1).png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
+| AILCS-SRC-008 | Cjelokupna arhitektura AILCS sistema.png | IMAGE | AILCS-SOURCE | VERIFIED | COMPLETE | PENDING | OPEN | P1–P4 later |
 
-## 4. Verification rules
+## 4. Current totals
 
-`VERIFIED` means that the source has been identified as AILCS-specific based on the available source evidence. It does **not** mean that every statement visible in the source has already been validated as a formal requirement.
+- Identified AILCS architecture/source images: **8**
+- Verified AILCS-specific: **8**
+- Original-source extraction completed: **8**
+- P1–P4 mapping completed: **0**
+- Cross-source consolidation completed: **0**
+- Register closed: **NO**
 
-`Pending detailed extraction` means the source has not yet been converted into a complete requirement-by-requirement evidence record.
+## 5. Extraction files
 
-`Pending` P1–P4 mapping means no normative mapping is being asserted at this stage.
+Each completed extraction is stored under:
 
-## 5. Exclusions / non-AILCS material
+`DOC FAIL AILCS/ORIGINAL_REQUIREMENTS/`
 
-The following material encountered during Library searches is explicitly **not** entered as an AILCS source:
+with the corresponding SOURCE-ID.
 
-- `prilog.docx` — contains room geometry, air intake/exhaust, plenum and HVAC data; classified as LAT/HVAC material.
-- `kompletna dokumentacija i ona koja nije zavrsena.docx` — begins with `LAT-01-000 PROJECT CHARTER Living Air Twin (LAT)`; classified as LAT material.
-- `Pasted markdown.md` — LAT SMC architecture material; classified as LAT material.
+## 6. Explicit exclusions
 
-These exclusions are recorded to prevent accidental cross-project contamination.
+The following Library material has been inspected and classified as NOT-AILCS:
 
-## 6. Register state
+- `prilog.docx` — LAT/HVAC room and ventilation material.
+- `kompletna dokumentacija i ona koja nije zavrsena.docx` — LAT-01 / Living Air Twin documentation.
+- `Pasted markdown.md` — LAT SMC architecture.
+- `Dvije stvari koje bih još dodao.docx` — LAT engineering/Physics Engine discussion.
 
-**Current identified AILCS sources:** 8  
-**Verified as AILCS-specific:** 8  
-**Detailed requirement extraction completed:** 0  
-**P1–P4 mapping completed:** 0  
-**Register closed:** NO
+These exclusions are preserved to prevent cross-project contamination.
 
-## 7. Next controlled step
+## 7. Control rule
 
-For each `SOURCE-ID`, extract only what is actually present in the original source and create the **Original Requirements Register**. Any interpretation, normalization, consolidation, or newly proposed element must be explicitly marked as reconstructed/proposed rather than historical source content.
+The completion of source extraction does **not** authorize final architecture synthesis.
 
-**Control rule:** No final AILCS document is to be treated as authoritative until the source inventory, original requirements, P1–P4 mapping, and status/action register have been closed.
+Next phase is:
+
+**P1–P4 mapping → cross-source comparison/conflict register → status/action closure → reconstruction register closure → final AILCS documentation.**
+
+No final AILCS document is authoritative before that sequence is closed.
